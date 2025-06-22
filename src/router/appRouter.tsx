@@ -1,7 +1,7 @@
 import { createBrowserRouter } from "react-router-dom";
 
-import Index from "@/views/index";
-import Dashboard from "@/views/dashboard";
+import Index from "@/views/Index";
+import Dashboard from "@/views/Dashboard";
 import Transactions from "@/views/Transactions";
 import NotFound from "@/views/NotFound";
 
