@@ -1,17 +1,49 @@
 {
-  "files": [],
-  "references": [
-    { "path": "./tsconfig.app.json" },
-    { "path": "./tsconfig.node.json" }
-  ],
   "compilerOptions": {
-    "types": ["node"],
-    "moduleResolution": "bundler",
-    "module": "ESNext",
-    "target": "ESNext",
+    "target": "ES2019",
+    "lib": ["dom", "dom.iterable", "esnext", "ES2017", "ES2018", "ES2019"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "checkJs": true,
+    "incremental": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitAny": false,
+    "strictPropertyInitialization": false,
     "baseUrl": ".",
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
     "paths": {
-      "@/*": ["src/*"]
+      "~/*": ["./*"],
+      "@/*": ["./src/*"]
     },
-  }
+    "strictNullChecks": true
+  },
+  "include": [
+    "tailwind.config.ts",
+    "postcss.config.js",
+    "next-env.d.ts",
+    "./src/**/*.ts",
+    "./src/**/*.tsx",
+    "./src/**/*.cjs",
+    "./src/**/*.mjs",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "./node_modules",
+    "./node_modules/*",
+    "./node_modules/@types/node/index.d.ts"
+  ]
 }

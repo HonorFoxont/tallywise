@@ -1,16 +1,14 @@
-import { createContext, useEffect, useState , useContext} from 'react';
 import {
   onAuthStateChanged,
   signInWithPopup,
   signOut as firebaseSignOut,
   type User as FirebaseUser,
 } from 'firebase/auth';
-import {doc,getDoc, setDoc} from "firebase/firestore";
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { createContext, useContext, useEffect, useState } from 'react';
 
+import { auth, db, googleProvider } from '@/lib/firebase';
 import { type User } from '@/types/users';
-
-import { auth, db, googleProvider} from '@/lib/firebase';
-
 
 interface AuthContextType {
   user: User | null;
@@ -28,16 +26,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState<boolean>(true);
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  
+
   useEffect(() => {
     return onAuthStateChanged(auth, async (firebaseUser) => {
       setFirebaseUser(firebaseUser);
-      
-      if(firebaseUser){
+
+      if (firebaseUser) {
         const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
         if (userDoc.exists()) {
           setUser({ id: firebaseUser.uid, ...userDoc.data() } as User);
-        }else{
+        } else {
           const newUser: Omit<User, 'id'> = {
             email: firebaseUser.email!,
             name: firebaseUser.displayName!,
@@ -48,37 +46,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             createdAt: new Date(),
             updatedAt: new Date(),
           };
-          
+
           await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
           setUser({ id: firebaseUser.uid, ...newUser });
         }
-      }
-      else{
+      } else {
         setUser(null);
       }
       setLoading(false);
     });
-    
-  },[]);
-    
+  }, []);
+
   const signInWithGoogle = async () => {
     try {
       await signInWithPopup(auth, googleProvider);
     } catch (error) {
-      console.error('Error signing in with Google: ' + error)
+      console.error('Error signing in with Google: ' + error);
       throw error;
     }
   };
-  
+
   const signOut = async () => {
     try {
       await firebaseSignOut(auth);
     } catch (error) {
-      console.error("Error signing out:"+error);
+      console.error('Error signing out:' + error);
       throw error;
     }
   };
-  
+
   const value = {
     user,
     firebaseUser,
@@ -87,4 +83,4 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signOut,
   };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
+};

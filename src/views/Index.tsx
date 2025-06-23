@@ -1,11 +1,11 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { Loading } from '@/components/loading';
 import { useAuth } from '@/contexts/AuthContext';
 
 import Dashboard from './Dashboard';
 import Login from './Login';
-import { Loading } from '@/components/loading';
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -23,16 +23,16 @@ const Index = () => {
         return;
       }
       if (user.role == 'superadmin') {
-        navigate("/users")
-      }else{
-      // User is active and has organization, redirect to dashboard
-      navigate('/dashboard');
+        navigate('/users');
+      } else {
+        // User is active and has organization, redirect to dashboard
+        navigate('/dashboard');
       }
     }
   }, [user, loading, navigate]);
 
   if (loading) {
-   <Loading />
+    <Loading />;
   }
   if (!user) {
     return <Login />;
