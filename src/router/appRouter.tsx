@@ -1,17 +1,21 @@
 import { createBrowserRouter } from "react-router-dom";
 
+import ProtectedRoutes from "@/components/ProtectedRoutes";
+
 import Index from "@/views/Index";
 import Dashboard from "@/views/Dashboard";
 import Transactions from "@/views/Transactions";
 import NotFound from "@/views/NotFound";
 import Login from "@/views/Login";
+import { Users } from "@/views/Users";
 
 const router = createBrowserRouter([
+  {path: "/login", element:<Login />},
   {path: "/", element:<Index />},
-  {path: "/dashboard", element:<Dashboard />},
-  {path: "/transactions", element:<Transactions />},
+  {path: "/dashboard", element:<ProtectedRoutes><Dashboard /></ProtectedRoutes>},
+  {path: "/transactions", element:<ProtectedRoutes><Transactions /></ProtectedRoutes>},
+  {path: "/users", element:<ProtectedRoutes><Users /></ProtectedRoutes>},
   {path: "*", element:<NotFound />},
-  {path: "/login", element:<Login />}
 ]);
 
 export default router;
