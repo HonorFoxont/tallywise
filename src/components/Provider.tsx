@@ -1,3 +1,5 @@
+import React from 'react';
+
 import { AuthProvider } from '@/contexts/AuthContext';
 
 import { SidebarProvider } from './ui/sidebar';
