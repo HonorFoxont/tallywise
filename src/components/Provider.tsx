@@ -2,7 +2,6 @@ import React from 'react';
 
 import { AuthProvider } from '@/contexts/AuthContext';
 
-import { SidebarProvider } from './ui/sidebar';
 // import more providers here as you add them
 
 interface ProvidersProps {
@@ -10,9 +9,5 @@ interface ProvidersProps {
 }
 
 export function Provider({ children }: ProvidersProps) {
-  return (
-    <SidebarProvider>
-      <AuthProvider>{children}</AuthProvider>
-    </SidebarProvider>
-  );
+  return <AuthProvider>{children}</AuthProvider>;
 }

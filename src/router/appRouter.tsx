@@ -1,5 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom';
 
+import { AppLayout } from '@/components/layouts/AppLayout';
 import ProtectedRoutes from '@/components/ProtectedRoutes';
 import Dashboard from '@/views/Dashboard';
 import Index from '@/views/Index';
@@ -11,30 +12,22 @@ import { Users } from '@/views/Users';
 const router = createBrowserRouter([
   { path: '/login', element: <Login /> },
   { path: '/', element: <Index /> },
+
   {
-    path: '/dashboard',
+    path: '/',
     element: (
       <ProtectedRoutes>
-        <Dashboard />
+        <AppLayout />
       </ProtectedRoutes>
     ),
+    children: [
+      { index: true, element: <Dashboard /> }, // default route: / renders Dashboard
+      { path: 'dashboard', element: <Dashboard /> },
+      { path: 'transactions', element: <Transactions /> },
+      { path: 'users', element: <Users /> },
+    ],
   },
-  {
-    path: '/transactions',
-    element: (
-      <ProtectedRoutes>
-        <Transactions />
-      </ProtectedRoutes>
-    ),
-  },
-  {
-    path: '/users',
-    element: (
-      <ProtectedRoutes>
-        <Users />
-      </ProtectedRoutes>
-    ),
-  },
+
   { path: '*', element: <NotFound /> },
 ]);
 

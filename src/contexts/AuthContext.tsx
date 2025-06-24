@@ -5,6 +5,7 @@ import {
   type User as FirebaseUser,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import React from 'react';
 import { createContext, useContext, useEffect, useState } from 'react';
 
 import { auth, db, googleProvider } from '@/lib/firebase';

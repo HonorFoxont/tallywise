@@ -1,6 +1,6 @@
 import React from 'react';
 
-export const Loading: React.FC<{}> = () => {
+export const LoadingArea: React.FC<{}> = () => {
   return (
     <div>
       <div className="absolute flex h-screen w-full items-center justify-center bg-gray-50">

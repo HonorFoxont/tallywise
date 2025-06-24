@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-import { Loading } from '@/components/loading';
 import { useAuth } from '@/contexts/AuthContext';
 
+import { LoadingArea } from '../components/LoadingArea';
 import Dashboard from './Dashboard';
 import Login from './Login';
 
@@ -32,7 +32,7 @@ const Index = () => {
   }, [user, loading, navigate]);
 
   if (loading) {
-    <Loading />;
+    <LoadingArea />;
   }
   if (!user) {
     return <Login />;
