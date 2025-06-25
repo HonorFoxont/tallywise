@@ -57,7 +57,9 @@ export const AppLayout: React.FC = () => {
     <SidebarProvider>
       <div className="min-h-screen w-full bg-gray-50">
         <Side>
-          <SidebarHeader className="bg-blue-500 text-white">Tallywise</SidebarHeader>
+          <SidebarHeader className="bg-blue-500 text-center text-xl font-bold text-white">
+            Tallywise
+          </SidebarHeader>
           <SidebarContent>
             <SidebarGroup>
               <SidebarGroupContent>

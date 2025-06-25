@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom';
 
 import { useAuth } from '@/contexts/AuthContext';
 
-import { LoadingArea } from '../components/LoadingArea';
-
 export const Users: React.FC<{}> = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -13,9 +11,5 @@ export const Users: React.FC<{}> = () => {
       navigate('dashboard');
     }
   }, []);
-  return (
-    <div>
-      <LoadingArea />
-    </div>
-  );
+  return <div>This is users page.</div>;
 };

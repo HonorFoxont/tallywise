@@ -9,6 +9,10 @@ import NotFound from '@/views/NotFound';
 import Transactions from '@/views/Transactions';
 import { Users } from '@/views/Users';
 
+import AuditLogs from '../views/AuditLogs';
+import Businesses from '../views/Businesses';
+import Categories from '../views/Categories';
+
 const router = createBrowserRouter([
   { path: '/login', element: <Login /> },
   { path: '/', element: <Index /> },
@@ -21,10 +25,13 @@ const router = createBrowserRouter([
       </ProtectedRoutes>
     ),
     children: [
-      { index: true, element: <Dashboard /> }, // default route: / renders Dashboard
+      { index: true, element: <Dashboard /> },
       { path: 'dashboard', element: <Dashboard /> },
       { path: 'transactions', element: <Transactions /> },
       { path: 'users', element: <Users /> },
+      { path: '/metadata/categories', element: <Categories /> },
+      { path: 'businesses', element: <Businesses /> },
+      { path: 'audit-logs', element: <AuditLogs /> },
     ],
   },
 
