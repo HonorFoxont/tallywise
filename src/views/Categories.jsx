@@ -27,22 +27,21 @@ const Categories = () => {
           <ToggleGroupItem
             value="income"
             aria-label="Toggle Income"
-            onClick={(e) => setTransaction(e.target.value)}
-            default
+            onClick={(e) => setTransaction('income')}
           >
             Income
           </ToggleGroupItem>
           <ToggleGroupItem
             value="savings"
             aria-label="Toggle Savings"
-            onClick={(e) => setTransaction(e.target.value)}
+            onClick={(e) => setTransaction('savings')}
           >
             Savings
           </ToggleGroupItem>
           <ToggleGroupItem
             value="expense"
             aria-label="Toggle Expense"
-            onClick={(e) => setTransaction(e.target.value)}
+            onClick={(e) => setTransaction('expense')}
           >
             Expense
           </ToggleGroupItem>

@@ -1,4 +1,4 @@
-import { FileText, Home, LogOut, Receipt, Settings, User, Users } from 'lucide-react';
+import { Bolt, FileText, Home, LogOut, Receipt, Settings, User, Users } from 'lucide-react';
 import React from 'react';
 import { Link, Outlet } from 'react-router-dom';
 
@@ -43,6 +43,12 @@ export const AppLayout: React.FC = () => {
       name: 'Categories',
       href: '/metadata/categories',
       icon: Settings,
+      roles: ['superadmin', 'admin', 'manager'],
+    },
+    {
+      name: 'Sub-Catagories',
+      href: '/metadata/sub-categories',
+      icon: Bolt,
       roles: ['superadmin', 'admin', 'manager'],
     },
     { name: 'Businesses', href: '/businesses', icon: FileText, roles: ['superadmin'] },
