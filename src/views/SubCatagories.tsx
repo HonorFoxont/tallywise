@@ -48,7 +48,7 @@ const SubCategories = () => {
                 </SelectContent>
               </Select>
             </div>
-            <Button className="cursor-pointer">+ Add Catagory</Button>
+            <Button className="cursor-pointer">+ Add Sub-Catagory</Button>
           </div>
         </CardHeader>
         <Table className="mx-auto w-[95%]">
