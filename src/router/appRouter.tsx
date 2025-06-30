@@ -30,7 +30,7 @@ const router = createBrowserRouter([
       { path: 'transactions', element: <Transactions /> },
       { path: 'users', element: <Users /> },
       { path: '/metadata/categories', element: <Categories /> },
-      { path: '/metadata/sub-categories', element: <SubCategories /> },
+      { path: '/metadata/subcategories', element: <SubCategories /> },
       { path: 'businesses', element: <Businesses /> },
       { path: 'audit-logs', element: <AuditLogs /> },
     ],

@@ -47,7 +47,7 @@ export const AppLayout: React.FC = () => {
     },
     {
       name: 'Sub-Catagories',
-      href: '/metadata/sub-categories',
+      href: '/metadata/subcategories',
       icon: Bolt,
       roles: ['superadmin', 'admin', 'manager'],
     },

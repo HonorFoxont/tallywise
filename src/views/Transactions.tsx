@@ -133,7 +133,7 @@ const Transactions: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-900">Transactions</h1>
           <p className="text-gray-600">Manage your business transactions</p>
         </div>
-        
+
         {/* Filters */}
         <Card>
           <CardHeader>

@@ -1,6 +1,7 @@
-import { addDoc, collection } from 'firebase/firestore';
+import { addDoc, collection, getDocs, query, where } from 'firebase/firestore';
 import { Plus } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { toast } from 'react-toastify';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -24,11 +25,19 @@ import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/firebase';
 import { type Transaction } from '@/types';
 
+interface Category {
+  id: string;
+  name: string;
+  type: 'income' | 'expense' | 'saving';
+  subCategories: { name: string; createdAt: Date }[];
+}
+
 const TransactionDialog: React.FC = () => {
-  const { user } = useAuth();
-  // const { toast } = useToast();
+  const { user, loading: authLoading } = useAuth();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [subCategories, setSubCategories] = useState<string[]>([]);
 
   const [formData, setFormData] = useState({
     transactionType: '',
@@ -40,28 +49,73 @@ const TransactionDialog: React.FC = () => {
     modeOfPayment: '',
   });
 
-  const incomeCategories = ['studio', 'glasshouse', 'event'];
-  const savingsCategories = ['bank', 'savings account', 'other'];
-  const expenseCategories = ['asset', 'liabity'];
-
-  const incomeSubCategories = ['passport', 'frames', 'rentals', 'mirror frame', 'wedding Shoot'];
-  const savingsSubCategories = ['NMB', 'SBI', 'Sudarshan', 'Janakalyan'];
-  const expenseSubCategories = [
-    'business asset',
-    'external asset',
-    'staff salary',
-    'food',
-    'donation',
-    'other',
-  ];
-
   const incomePaymentModes = ['cash', 'fonepay', 'esewa', 'credit'];
   const savingsPaymentModes = ['cash'];
   const expensePaymentModes = ['cash'];
 
+  // Fetch categories based on transaction type
+  useEffect(() => {
+    const fetchCategories = async () => {
+      if (!user?.organizationId || authLoading || !formData.transactionType) {
+        setCategories([]);
+        setSubCategories([]);
+        setFormData((prev) => ({ ...prev, category: '', subCategory: '' }));
+        return;
+      }
+
+      try {
+        const categoriesRef = collection(db, `organizations/${user.organizationId}/categories`);
+        const q = query(categoriesRef, where('type', '==', formData.transactionType));
+        const querySnapshot = await getDocs(q);
+        const fetchedCategories = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+          subCategories: (doc.data().subCategories || []).map((sub: any) => ({
+            ...sub,
+            createdAt: sub.createdAt.toDate(),
+          })),
+        })) as Category[];
+        setCategories(fetchedCategories);
+        setFormData((prev) => ({ ...prev, category: '', subCategory: '' }));
+        setSubCategories([]);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        toast.error('Failed to fetch categories');
+      }
+    };
+
+    fetchCategories();
+  }, [user?.organizationId, formData.transactionType, authLoading]);
+
+  // Fetch subcategories based on selected category
+  useEffect(() => {
+    const fetchSubCategories = () => {
+      if (!formData.category) {
+        setSubCategories([]);
+        setFormData((prev) => ({ ...prev, subCategory: '' }));
+        return;
+      }
+
+      const selectedCategory = categories.find((cat) => cat.id === formData.category);
+      if (selectedCategory) {
+        const subCategoryNames = selectedCategory.subCategories.map((sub) => sub.name);
+        setSubCategories(subCategoryNames);
+        setFormData((prev) => ({ ...prev, subCategory: '' }));
+      } else {
+        setSubCategories([]);
+        setFormData((prev) => ({ ...prev, subCategory: '' }));
+      }
+    };
+
+    fetchSubCategories();
+  }, [formData.category, categories]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user?.organizationId) {
+      toast.error('No organization assigned to user');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -87,10 +141,7 @@ const TransactionDialog: React.FC = () => {
 
       await addDoc(collection(db, 'transactions'), transaction);
 
-      // toast({
-      //   title: 'Success',
-      //   description: 'Transaction created successfully',
-      // });
+      toast.success('Transaction created successfully');
 
       // Reset form
       setFormData({
@@ -106,11 +157,7 @@ const TransactionDialog: React.FC = () => {
       setOpen(false);
     } catch (error) {
       console.error('Error creating transaction:', error);
-      // toast({
-      //   title: 'Error',
-      //   description: 'Failed to create transaction',
-      //   variant: 'destructive',
-      // });
+      toast.error('Failed to create transaction');
     } finally {
       setLoading(false);
     }
@@ -135,7 +182,14 @@ const TransactionDialog: React.FC = () => {
                 <Label htmlFor="transactionType">Transaction Type *</Label>
                 <Select
                   value={formData.transactionType}
-                  onValueChange={(value) => setFormData({ ...formData, transactionType: value })}
+                  onValueChange={(value) =>
+                    setFormData({
+                      ...formData,
+                      transactionType: value,
+                      category: '',
+                      subCategory: '',
+                    })
+                  }
                   required
                 >
                   <SelectTrigger>
@@ -149,22 +203,29 @@ const TransactionDialog: React.FC = () => {
                 </Select>
               </div>
 
-              {formData.transactionType === 'income' && (
+              {formData.transactionType && (
                 <>
                   <div>
                     <Label htmlFor="category">Category *</Label>
                     <Select
                       value={formData.category}
-                      onValueChange={(value) => setFormData({ ...formData, category: value })}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, category: value, subCategory: '' })
+                      }
                       required
+                      disabled={!formData.transactionType || categories.length === 0}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
+                        <SelectValue
+                          placeholder={
+                            categories.length === 0 ? 'No categories available' : 'Select category'
+                          }
+                        />
                       </SelectTrigger>
                       <SelectContent>
-                        {incomeCategories.map((cat) => (
-                          <SelectItem key={cat} value={cat}>
-                            {cat}
+                        {categories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            {cat.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -177,12 +238,19 @@ const TransactionDialog: React.FC = () => {
                       value={formData.subCategory}
                       onValueChange={(value) => setFormData({ ...formData, subCategory: value })}
                       required
+                      disabled={!formData.category || subCategories.length === 0}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select sub category" />
+                        <SelectValue
+                          placeholder={
+                            subCategories.length === 0
+                              ? 'No subcategories available'
+                              : 'Select sub category'
+                          }
+                        />
                       </SelectTrigger>
                       <SelectContent>
-                        {incomeSubCategories.map((subCat) => (
+                        {subCategories.map((subCat) => (
                           <SelectItem key={subCat} value={subCat}>
                             {subCat}
                           </SelectItem>
@@ -203,16 +271,18 @@ const TransactionDialog: React.FC = () => {
                     />
                   </div>
 
-                  <div>
-                    <Label htmlFor="advancePaid">Advance Paid</Label>
-                    <Input
-                      id="advancePaid"
-                      type="number"
-                      step="0.01"
-                      value={formData.advancePaid}
-                      onChange={(e) => setFormData({ ...formData, advancePaid: e.target.value })}
-                    />
-                  </div>
+                  {formData.transactionType === 'income' && (
+                    <div>
+                      <Label htmlFor="advancePaid">Advance Paid</Label>
+                      <Input
+                        id="advancePaid"
+                        type="number"
+                        step="0.01"
+                        value={formData.advancePaid}
+                        onChange={(e) => setFormData({ ...formData, advancePaid: e.target.value })}
+                      />
+                    </div>
+                  )}
 
                   <div>
                     <Label htmlFor="modeOfPayment">Mode of Payment *</Label>
@@ -225,179 +295,12 @@ const TransactionDialog: React.FC = () => {
                         <SelectValue placeholder="Select payment mode" />
                       </SelectTrigger>
                       <SelectContent>
-                        {incomePaymentModes.map((mode) => (
-                          <SelectItem key={mode} value={mode} className="capitalize">
-                            {mode}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="note">Note</Label>
-                    <Textarea
-                      id="note"
-                      value={formData.note}
-                      onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                      rows={3}
-                    />
-                  </div>
-                </>
-              )}
-
-              {formData.transactionType === 'savings' && (
-                <>
-                  <div>
-                    <Label htmlFor="category">Category *</Label>
-                    <Select
-                      value={formData.category}
-                      onValueChange={(value) => setFormData({ ...formData, category: value })}
-                      required
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {savingsCategories.map((cat) => (
-                          <SelectItem key={cat} value={cat}>
-                            {cat}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="subCategory">Sub Category *</Label>
-                    <Select
-                      value={formData.subCategory}
-                      onValueChange={(value) => setFormData({ ...formData, subCategory: value })}
-                      required
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select sub category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {savingsSubCategories.map((subCat) => (
-                          <SelectItem key={subCat} value={subCat}>
-                            {subCat}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="amountTotal">Total Amount *</Label>
-                    <Input
-                      id="amountTotal"
-                      type="number"
-                      step="0.01"
-                      value={formData.amountTotal}
-                      onChange={(e) => setFormData({ ...formData, amountTotal: e.target.value })}
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="modeOfPayment">Mode of Payment *</Label>
-                    <Select
-                      value={formData.modeOfPayment}
-                      onValueChange={(value) => setFormData({ ...formData, modeOfPayment: value })}
-                      required
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select payment mode" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {savingsPaymentModes.map((mode) => (
-                          <SelectItem key={mode} value={mode} className="capitalize">
-                            {mode}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="note">Note</Label>
-                    <Textarea
-                      id="note"
-                      value={formData.note}
-                      onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                      rows={3}
-                    />
-                  </div>
-                </>
-              )}
-
-              {formData.transactionType === 'expense' && (
-                <>
-                  <div>
-                    <Label htmlFor="category">Category *</Label>
-                    <Select
-                      value={formData.category}
-                      onValueChange={(value) => setFormData({ ...formData, category: value })}
-                      required
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {expenseCategories.map((cat) => (
-                          <SelectItem key={cat} value={cat}>
-                            {cat}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="subCategory">Sub Category *</Label>
-                    <Select
-                      value={formData.subCategory}
-                      onValueChange={(value) => setFormData({ ...formData, subCategory: value })}
-                      required
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select sub category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {expenseSubCategories.map((subCat) => (
-                          <SelectItem key={subCat} value={subCat}>
-                            {subCat}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="amountTotal">Total Amount *</Label>
-                    <Input
-                      id="amountTotal"
-                      type="number"
-                      step="0.01"
-                      value={formData.amountTotal}
-                      onChange={(e) => setFormData({ ...formData, amountTotal: e.target.value })}
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="modeOfPayment">Mode of Payment *</Label>
-                    <Select
-                      value={formData.modeOfPayment}
-                      onValueChange={(value) => setFormData({ ...formData, modeOfPayment: value })}
-                      required
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select payment mode" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {expensePaymentModes.map((mode) => (
+                        {(formData.transactionType === 'income'
+                          ? incomePaymentModes
+                          : formData.transactionType === 'savings'
+                            ? savingsPaymentModes
+                            : expensePaymentModes
+                        ).map((mode) => (
                           <SelectItem key={mode} value={mode} className="capitalize">
                             {mode}
                           </SelectItem>
