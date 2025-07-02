@@ -1,8 +1,10 @@
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { SquarePen, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 
+import DeleteCategoriesDialog from '@/components/dialogs/categories/DeleteCategoriesDialog';
+import EditCategoriesDialog from '@/components/dialogs/categories/EditCategoriesDialog';
 import { Card } from '@/components/ui/card';
 import {
   Table,
@@ -30,10 +32,13 @@ const Categories = () => {
   const [transaction, setTransaction] = useState<'income' | 'expense' | 'saving'>('income');
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // Fetch categories
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchCategories = () => {
       if (!user?.organizationId || authLoading) {
         if (!authLoading && !user?.organizationId) {
           toast.error('No organization assigned to user');
@@ -43,23 +48,27 @@ const Categories = () => {
       }
 
       setLoading(true);
-      try {
-        const categoriesRef = collection(db, `organizations/${user.organizationId}/categories`);
-        const q = query(categoriesRef, where('type', '==', transaction));
-        const querySnapshot = await getDocs(q);
-        const fetchedCategories = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-          createdAt: doc.data().createdAt.toDate(),
-          updatedAt: doc.data().updatedAt.toDate(),
-        })) as Category[];
-        setCategories(fetchedCategories);
-      } catch (error) {
-        console.error('Error fetching categories:', error);
-        toast.error('Failed to fetch categories');
-      } finally {
-        setLoading(false);
-      }
+      const categoriesRef = collection(db, `organizations/${user.organizationId}/categories`);
+      const q = query(categoriesRef, where('type', '==', transaction));
+
+      const unsubscribe = onSnapshot(
+        q,
+        (querySnapshot) => {
+          const fetchedCategories = querySnapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+            createdAt: doc.data().createdAt.toDate(),
+            updatedAt: doc.data().updatedAt.toDate(),
+          })) as Category[];
+          setCategories(fetchedCategories);
+          setLoading(false);
+        },
+        (error) => {
+          toast.error('Error fetching categories');
+          console.error('Error fetching categories', error);
+        }
+      );
+      return () => unsubscribe();
     };
 
     fetchCategories();
@@ -119,10 +128,22 @@ const Categories = () => {
                   <TableCell>{category.name}</TableCell>
                   <TableCell>{category.createdAt.toDateString()}</TableCell>
                   <TableCell>
-                    <SquarePen className="cursor-pointer" />
+                    <SquarePen
+                      className="cursor-pointer"
+                      onClick={() => {
+                        setSelectedCategory(category);
+                        setEditDialogOpen(true);
+                      }}
+                    />
                   </TableCell>
                   <TableCell>
-                    <Trash2 className="cursor-pointer" />
+                    <Trash2
+                      className="cursor-pointer"
+                      onClick={() => {
+                        setSelectedCategory(category);
+                        setDeleteDialogOpen(true);
+                      }}
+                    />
                   </TableCell>
                 </TableRow>
               ))
@@ -130,6 +151,16 @@ const Categories = () => {
           </TableBody>
         </Table>
       </Card>
+      <EditCategoriesDialog
+        open={editDialogOpen}
+        category={selectedCategory}
+        onOpenChange={setEditDialogOpen}
+      />
+      <DeleteCategoriesDialog
+        category={selectedCategory}
+        dialogOpen={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+      />
     </div>
   );
 };

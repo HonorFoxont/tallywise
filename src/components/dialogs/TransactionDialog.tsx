@@ -95,7 +95,7 @@ const TransactionDialog: React.FC = () => {
         setFormData((prev) => ({ ...prev, subCategory: '' }));
         return;
       }
-
+      
       const selectedCategory = categories.find((cat) => cat.id === formData.category);
       if (selectedCategory) {
         const subCategoryNames = selectedCategory.subCategories.map((sub) => sub.name);

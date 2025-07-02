@@ -3,7 +3,7 @@ import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestor
 import { Filter, Search } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
-import TransactionDialog from '@/components/TransactionDialog';
+import TransactionDialog from '@/components/dialogs/TransactionDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
