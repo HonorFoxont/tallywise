@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 
 import DeleteCategoriesDialog from '@/components/dialogs/categories/DeleteCategoriesDialog';
 import EditCategoriesDialog from '@/components/dialogs/categories/EditCategoriesDialog';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
   Table,
@@ -18,6 +19,8 @@ import {
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/firebase';
+
+import AddCategoriesDialog from '../components/dialogs/categories/AddCategoriesDialog';
 
 interface Category {
   id: string;
@@ -35,6 +38,7 @@ const Categories = () => {
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
 
   // Fetch categories
   useEffect(() => {
@@ -100,8 +104,16 @@ const Categories = () => {
       </Card>
 
       <Card>
-        <div className="mx-auto w-[95%] py-4">
+        <div className="mx-auto flex w-[95%] justify-between py-4">
           <h1 className="text-bold text-2xl">Category:</h1>
+          <Button
+            onClick={() => {
+              setAddDialogOpen(true);
+            }}
+            className="cursor-pointer"
+          >
+            Add Category
+          </Button>
         </div>
         <Table className="mx-auto w-[95%]">
           <TableCaption>A list of your categories.</TableCaption>
@@ -161,6 +173,7 @@ const Categories = () => {
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
       />
+      <AddCategoriesDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
     </div>
   );
 };
