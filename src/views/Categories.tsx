@@ -158,7 +158,7 @@ const Categories = () => {
       />
       <DeleteCategoriesDialog
         category={selectedCategory}
-        dialogOpen={deleteDialogOpen}
+        open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
       />
     </div>
