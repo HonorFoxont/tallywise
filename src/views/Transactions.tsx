@@ -1,6 +1,6 @@
 import { format } from 'date-fns';
-import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
-import { Filter, Search } from 'lucide-react';
+import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { Filter, Plus, Search } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
 import TransactionDialog from '@/components/dialogs/TransactionDialog';
@@ -17,13 +17,41 @@ import {
 } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/firebase';
-import { type Transaction } from '@/types';
+
+interface Category {
+  id: string;
+  name: string;
+  type: 'income' | 'expense' | 'savings';
+}
+
+interface SubCategory {
+  id: string;
+  name: string;
+}
+
+interface Transaction {
+  id: string;
+  categoryId: string;
+  subCategoryId: string | null;
+  amount: number;
+  type: 'income' | 'expense' | 'savings';
+  note: string;
+  modeOfPayment: string;
+  date: Date;
+  advancePaid: number;
+  remainingAmount: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 const Transactions: React.FC = () => {
   const { user } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [transactionDialogOpen, setTransactionDialogOpen] = useState(false);
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -31,12 +59,47 @@ const Transactions: React.FC = () => {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [paymentFilter, setPaymentFilter] = useState('all');
 
+  // Fetch categories
   useEffect(() => {
     if (!user?.organizationId) return;
+    const q = query(collection(db, `organizations/${user.organizationId}/categories`));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const categoriesData = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Category[];
+      setCategories(categoriesData);
+    });
+    return () => unsubscribe();
+  }, [user?.organizationId]);
 
+  // Fetch subcategories
+  useEffect(() => {
+    if (!user?.organizationId || categoryFilter === 'all') {
+      setSubCategories([]);
+      return;
+    }
+    const q = query(
+      collection(
+        db,
+        `organizations/${user.organizationId}/categories/${categoryFilter}/subCategories`
+      )
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const subCategoriesData = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as SubCategory[];
+      setSubCategories(subCategoriesData);
+    });
+    return () => unsubscribe();
+  }, [user?.organizationId, categoryFilter]);
+
+  // Fetch transactions
+  useEffect(() => {
+    if (!user?.organizationId) return;
     const transactionsQuery = query(
-      collection(db, 'transactions'),
-      where('organizationId', '==', user.organizationId),
+      collection(db, `organizations/${user.organizationId}/transactions`),
       orderBy('createdAt', 'desc')
     );
 
@@ -48,45 +111,51 @@ const Transactions: React.FC = () => {
         createdAt: doc.data().createdAt?.toDate(),
         updatedAt: doc.data().updatedAt?.toDate(),
       })) as Transaction[];
-
       setTransactions(transactionsData);
       setLoading(false);
     });
 
-    return unsubscribe;
+    return () => unsubscribe();
   }, [user?.organizationId]);
 
   // Apply filters
   useEffect(() => {
     let filtered = transactions;
 
-    // Search filter
     if (searchTerm) {
-      filtered = filtered.filter(
-        (t) =>
+      filtered = filtered.filter((t) => {
+        const categoryName = categories.find((c) => c.id === t.categoryId)?.name || '';
+        const subCategoryName = subCategories.find((s) => s.id === t.subCategoryId)?.name || '';
+        return (
           t.note.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          t.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          t.subCategory.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+          categoryName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          subCategoryName.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      });
     }
 
-    // Type filter
     if (typeFilter !== 'all') {
-      filtered = filtered.filter((t) => t.transactionType === typeFilter);
+      filtered = filtered.filter((t) => t.type === typeFilter);
     }
 
-    // Category filter
     if (categoryFilter !== 'all') {
-      filtered = filtered.filter((t) => t.category === categoryFilter);
+      filtered = filtered.filter((t) => t.categoryId === categoryFilter);
     }
 
-    // Payment filter
     if (paymentFilter !== 'all') {
       filtered = filtered.filter((t) => t.modeOfPayment === paymentFilter);
     }
 
     setFilteredTransactions(filtered);
-  }, [transactions, searchTerm, typeFilter, categoryFilter, paymentFilter]);
+  }, [
+    transactions,
+    categories,
+    subCategories,
+    searchTerm,
+    typeFilter,
+    categoryFilter,
+    paymentFilter,
+  ]);
 
   const getTransactionTypeColor = (type: string) => {
     switch (type) {
@@ -172,9 +241,11 @@ const Transactions: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
-                  <SelectItem value="studio">Studio</SelectItem>
-                  <SelectItem value="glasshouse">Glasshouse</SelectItem>
-                  <SelectItem value="events">Events</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
 
@@ -217,47 +288,61 @@ const Transactions: React.FC = () => {
                     : 'No transactions match your filters'}
                 </p>
               ) : (
-                filteredTransactions.map((transaction) => (
-                  <div
-                    key={transaction.id}
-                    className="flex items-center justify-between rounded-lg border p-4 hover:bg-gray-50"
-                  >
-                    <div className="flex-1">
-                      <div className="mb-2 flex items-center gap-2">
-                        <Badge className={getTransactionTypeColor(transaction.transactionType)}>
-                          {transaction.transactionType}
-                        </Badge>
-                        <span className="text-sm font-medium">
-                          {transaction.category} • {transaction.subCategory}
-                        </span>
-                        <Badge variant="outline" className="capitalize">
-                          {transaction.modeOfPayment}
-                        </Badge>
-                      </div>
-                      <p className="mb-1 text-gray-600">{transaction.note || 'No note'}</p>
-                      <p className="text-xs text-gray-400">
-                        {format(transaction.date, 'MMM dd, yyyy')} • Created{' '}
-                        {format(transaction.createdAt, 'MMM dd, yyyy HH:mm')}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-lg font-bold">{formatCurrency(transaction.amountTotal)}</p>
-                      {transaction.advancePaid > 0 && (
-                        <div className="text-sm text-gray-500">
-                          <p>Advance: {formatCurrency(transaction.advancePaid)}</p>
-                          <p>Remaining: {formatCurrency(transaction.remainingAmount)}</p>
+                filteredTransactions.map((transaction) => {
+                  const categoryName =
+                    categories.find((c) => c.id === transaction.categoryId)?.name || 'Unknown';
+                  const subCategoryName =
+                    subCategories.find((s) => s.id === transaction.subCategoryId)?.name || 'None';
+                  return (
+                    <div
+                      key={transaction.id}
+                      className="flex items-center justify-between rounded-lg border p-4 hover:bg-gray-50"
+                    >
+                      <div className="flex-1">
+                        <div className="mb-2 flex items-center gap-2">
+                          <Badge className={getTransactionTypeColor(transaction.type)}>
+                            {transaction.type}
+                          </Badge>
+                          <span className="text-sm font-medium">
+                            {categoryName} • {subCategoryName}
+                          </span>
+                          <Badge variant="outline" className="capitalize">
+                            {transaction.modeOfPayment}
+                          </Badge>
                         </div>
-                      )}
+                        <p className="mb-1 text-gray-600">{transaction.note || 'No note'}</p>
+                        <p className="text-xs text-gray-400">
+                          {format(transaction.date, 'MMM dd, yyyy')} • Created{' '}
+                          {format(transaction.createdAt, 'MMM dd, yyyy HH:mm')}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-bold">{formatCurrency(transaction.amount)}</p>
+                        {transaction.advancePaid > 0 && (
+                          <div className="text-sm text-gray-500">
+                            <p>Advance: {formatCurrency(transaction.advancePaid)}</p>
+                            <p>Remaining: {formatCurrency(transaction.remainingAmount)}</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </CardContent>
         </Card>
+        <Button
+          size="lg"
+          className="absolute right-4 bottom-4 h-14 w-14 cursor-pointer rounded-full shadow-lg"
+          onClick={() => {
+            setTransactionDialogOpen(true);
+          }}
+        >
+          <Plus className="h-6 w-6" />
+        </Button>
       </div>
-
-      <TransactionDialog />
+      <TransactionDialog open={transactionDialogOpen} onOpenChange={setTransactionDialogOpen} />
     </>
   );
 };

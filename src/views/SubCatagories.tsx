@@ -1,9 +1,14 @@
-import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { SquarePen, Trash2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 
+import AddSubCategoryDialog from '@/components/dialogs/subCategories/addSubCategoryDialog';
+import DeleteSubCategoryDialog from '@/components/dialogs/subCategories/DeleteSubCategoryDialog';
+import EditSubCategoryDialog from '@/components/dialogs/subCategories/EditSubCategoryDialog';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
@@ -27,88 +32,99 @@ import { db } from '@/lib/firebase';
 interface Category {
   id: string;
   name: string;
-  type: 'income' | 'expense' | 'saving';
+  type: 'income' | 'expense' | 'savings';
 }
 
 interface SubCategory {
+  id: string;
   name: string;
   createdAt: Date;
+  updatedAt: Date;
 }
 
-const SubCategories = () => {
+const SubCategories: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
-  const [transaction, setTransaction] = useState<'income' | 'expense' | 'saving'>('income');
+  const [type, setType] = useState<'income' | 'expense' | 'savings'>('income');
   const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>(''); // Initialize as empty string
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedSubCategory, setSelectedSubCategory] = useState<SubCategory | null>(null);
 
   // Fetch categories
   useEffect(() => {
-    const fetchCategories = async () => {
-      if (!user?.organizationId || authLoading) {
-        if (!authLoading && !user?.organizationId) {
-          toast.error('No organization assigned to user');
-        }
-        setLoading(false);
-        return;
+    if (!user?.organizationId || authLoading) {
+      if (!authLoading && !user?.organizationId) {
+        toast.error('No organization assigned to user');
       }
+      setLoading(false);
+      setCategories([]);
+      setSelectedCategory('');
+      setSubCategories([]);
+      return;
+    }
 
-      setLoading(true);
-      try {
-        const categoriesRef = collection(db, `organizations/${user.organizationId}/categories`);
-        const q = query(categoriesRef, where('type', '==', transaction));
-        const querySnapshot = await getDocs(q);
+    setLoading(true);
+    const categoriesRef = collection(db, `organizations/${user.organizationId}/categories`);
+    const q = query(categoriesRef, where('type', '==', type));
+
+    const unsubscribe = onSnapshot(
+      q,
+      (querySnapshot) => {
         const fetchedCategories = querySnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         })) as Category[];
         setCategories(fetchedCategories);
-        setSelectedCategory(fetchedCategories[0]?.id || null);
-      } catch (error) {
+        setSelectedCategory(fetchedCategories[0]?.id || ''); // Set to first ID or empty string
+        setLoading(false);
+      },
+      (error) => {
         console.error('Error fetching categories:', error);
         toast.error('Failed to fetch categories');
-      } finally {
         setLoading(false);
       }
-    };
+    );
 
-    fetchCategories();
-  }, [user?.organizationId, transaction, authLoading]);
+    return () => unsubscribe();
+  }, [user?.organizationId, type, authLoading]);
 
   // Fetch subcategories
   useEffect(() => {
-    const fetchSubCategories = async () => {
-      if (!user?.organizationId || !selectedCategory || authLoading) {
-        setLoading(false);
-        return;
-      }
+    if (!user?.organizationId || !selectedCategory || authLoading) {
+      setSubCategories([]);
+      setLoading(false);
+      return;
+    }
 
-      setLoading(true);
-      try {
-        const categoryDoc = await getDoc(
-          doc(db, `organizations/${user.organizationId}/categories`, selectedCategory)
-        );
-        if (categoryDoc.exists()) {
-          const subCategoriesData = categoryDoc.data().subCategories || [];
-          setSubCategories(
-            subCategoriesData.map((sub: any) => ({
-              ...sub,
-              createdAt: sub.createdAt.toDate(),
-            }))
-          );
-        } else {
-          setSubCategories([]);
-        }
-      } catch (error) {
+    setLoading(true);
+    const subCategoriesRef = collection(
+      db,
+      `organizations/${user.organizationId}/categories/${selectedCategory}/subCategories`
+    );
+    const unsubscribe = onSnapshot(
+      subCategoriesRef,
+      (querySnapshot) => {
+        const fetchedSubCategories = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+          createdAt: doc.data().createdAt.toDate(),
+          updatedAt: doc.data().updatedAt.toDate(),
+        })) as SubCategory[];
+        setSubCategories(fetchedSubCategories);
+        setLoading(false);
+      },
+      (error) => {
         console.error('Error fetching subcategories:', error);
         toast.error('Failed to fetch subcategories');
-      } finally {
         setLoading(false);
       }
-    };
+    );
 
-    fetchSubCategories();
+    return () => unsubscribe();
   }, [user?.organizationId, selectedCategory, authLoading]);
 
   return (
@@ -122,7 +138,7 @@ const SubCategories = () => {
           type="single"
           className="w-full"
           defaultValue="income"
-          onValueChange={(value) => setTransaction(value as 'income' | 'expense' | 'saving')}
+          onValueChange={(value) => value && setType(value as 'income' | 'expense' | 'savings')}
         >
           <ToggleGroupItem value="income" aria-label="Toggle Income">
             Income
@@ -137,14 +153,26 @@ const SubCategories = () => {
       </Card>
 
       <Card>
-        <div className="mx-auto w-[95%] py-4">
+        <div className="mx-auto flex w-[95%] items-center justify-between py-4">
           <h1 className="text-bold text-2xl">SubCategory:</h1>
+          <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="cursor-pointer" disabled={!selectedCategory}>
+                + Add SubCategory
+              </Button>
+            </DialogTrigger>
+            <AddSubCategoryDialog
+              open={addDialogOpen}
+              onOpenChange={setAddDialogOpen}
+              categoryId={selectedCategory}
+            />
+          </Dialog>
         </div>
         <div className="mx-auto w-[95%] py-4">
           <Select
-            value={selectedCategory || ''}
+            value={selectedCategory}
             onValueChange={setSelectedCategory}
-            disabled={loading || authLoading}
+            disabled={loading || authLoading || categories.length === 0}
           >
             <SelectTrigger>
               <SelectValue placeholder="Select a category" />
@@ -173,20 +201,36 @@ const SubCategories = () => {
               <TableRow>
                 <TableCell colSpan={4}>Loading...</TableCell>
               </TableRow>
+            ) : categories.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4}>No categories found for {type}.</TableCell>
+              </TableRow>
             ) : subCategories.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4}>No subcategories found.</TableCell>
+                <TableCell colSpan={4}>No subcategories found for selected category.</TableCell>
               </TableRow>
             ) : (
-              subCategories.map((subCategory, index) => (
-                <TableRow key={index}>
+              subCategories.map((subCategory) => (
+                <TableRow key={subCategory.id}>
                   <TableCell>{subCategory.name}</TableCell>
                   <TableCell>{subCategory.createdAt.toDateString()}</TableCell>
                   <TableCell>
-                    <SquarePen className="cursor-pointer" />
+                    <SquarePen
+                      className="cursor-pointer"
+                      onClick={() => {
+                        setSelectedSubCategory(subCategory);
+                        setEditDialogOpen(true);
+                      }}
+                    />
                   </TableCell>
                   <TableCell>
-                    <Trash2 className="cursor-pointer" />
+                    <Trash2
+                      className="cursor-pointer"
+                      onClick={() => {
+                        setSelectedSubCategory(subCategory);
+                        setDeleteDialogOpen(true);
+                      }}
+                    />
                   </TableCell>
                 </TableRow>
               ))
@@ -194,6 +238,19 @@ const SubCategories = () => {
           </TableBody>
         </Table>
       </Card>
+
+      <EditSubCategoryDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        subCategory={selectedSubCategory}
+        categoryId={selectedCategory}
+      />
+      <DeleteSubCategoryDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        subCategory={selectedSubCategory}
+        categoryId={selectedCategory}
+      />
     </div>
   );
 };
