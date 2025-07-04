@@ -3,8 +3,6 @@ import { SquarePen, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 
-import DeleteCategoriesDialog from '@/components/dialogs/categories/DeleteCategoriesDialog';
-import EditCategoriesDialog from '@/components/dialogs/categories/EditCategoriesDialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -19,8 +17,9 @@ import {
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/firebase';
-
-import AddCategoriesDialog from '../components/dialogs/categories/AddCategoriesDialog';
+import AddCategoriesDialog from '@/views/categories/components/dialogs/AddCategoriesDialog';
+import DeleteCategoriesDialog from '@/views/categories/components/dialogs/DeleteCategoriesDialog';
+import EditCategoriesDialog from '@/views/categories/components/dialogs/EditCategoriesDialog';
 
 interface Category {
   id: string;

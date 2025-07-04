@@ -28,7 +28,7 @@ interface EditCategoryDialogProps {
   category: Category | null;
 }
 
-const EditCategoryDialog: React.FC<EditCategoryDialogProps> = ({
+const EditCategoriesDialog: React.FC<EditCategoryDialogProps> = ({
   open,
   onOpenChange,
   category,
@@ -50,7 +50,7 @@ const EditCategoryDialog: React.FC<EditCategoryDialogProps> = ({
       onOpenChange(false); // No changes, close dialog
       return;
     }
-    
+
     setLoading(true);
     try {
       await updateDoc(doc(db, `organizations/${user.organizationId}/categories/${category.id}`), {
@@ -99,4 +99,4 @@ const EditCategoryDialog: React.FC<EditCategoryDialogProps> = ({
   );
 };
 
-export default EditCategoryDialog;
+export default EditCategoriesDialog;

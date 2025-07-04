@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2019",
-    "lib": ["dom", "dom.iterable", "esnext", "ES2017", "ES2018", "ES2019"],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": false,
@@ -9,7 +9,8 @@
     "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
@@ -19,22 +20,24 @@
     "noImplicitAny": false,
     "strictPropertyInitialization": false,
     "baseUrl": ".",
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
     "paths": {
       "~/*": ["./*"],
       "@/*": ["./src/*"]
     },
-    "strictNullChecks": true
+    "strictNullChecks": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
   },
-  "include": ["tailwind.config.ts", "postcss.config.js", "next-env.d.ts", "./src/*"],
-  "exclude": [
-    "node_modules",
-    "./node_modules",
-    "./node_modules/*",
-    "./node_modules/@types/node/index.d.ts"
-  ]
+  "include": [
+    "tailwind.config.ts",
+    "postcss.config.js",
+    "vite.config.ts",
+    "next-env.d.ts",
+    "./src/**/*.ts",
+    "./src/**/*.tsx"
+  ],
+  "exclude": ["node_modules"]
 }

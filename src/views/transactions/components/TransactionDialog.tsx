@@ -69,7 +69,7 @@ const TransactionDialog: React.FC<TransactionDialogProps> = ({ open, onOpenChang
     });
     return () => unsubscribe();
   }, [user?.organizationId, type]);
-  
+
   // Fetch subcategories
   useEffect(() => {
     if (!user?.organizationId || !selectedCategory) {

@@ -4,13 +4,13 @@ import { AppLayout } from '@/components/layouts/AppLayout';
 import ProtectedRoutes from '@/components/ProtectedRoutes';
 import AuditLogs from '@/views/AuditLogs';
 import Businesses from '@/views/Businesses';
-import Categories from '@/views/Categories';
+import Categories from '@/views/categories/Categories';
 import Dashboard from '@/views/Dashboard';
 import Index from '@/views/Index';
 import Login from '@/views/Login';
 import NotFound from '@/views/NotFound';
-import SubCategories from '@/views/SubCatagories';
-import Transactions from '@/views/Transactions';
+import SubCategories from '@/views/sub-categories/SubCatagories';
+import Transactions from '@/views/transactions/Transactions';
 import { Users } from '@/views/Users';
 
 const router = createBrowserRouter([

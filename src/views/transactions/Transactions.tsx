@@ -3,7 +3,6 @@ import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { Filter, Plus, Search } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
-import TransactionDialog from '@/components/dialogs/TransactionDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +16,7 @@ import {
 } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/firebase';
+import TransactionDialog from '@/views/transactions/components/TransactionDialog';
 
 interface Category {
   id: string;
