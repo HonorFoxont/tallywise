@@ -50,7 +50,7 @@ const EditCategoryDialog: React.FC<EditCategoryDialogProps> = ({
       onOpenChange(false); // No changes, close dialog
       return;
     }
-
+    
     setLoading(true);
     try {
       await updateDoc(doc(db, `organizations/${user.organizationId}/categories/${category.id}`), {
