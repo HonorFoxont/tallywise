@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
 import { LoadingArea } from '../components/LoadingArea';
-import Dashboard from './Dashboard';
+import Dashboard from './dashboard/Dashboard';
 import Login from './Login';
 
 const Index = () => {

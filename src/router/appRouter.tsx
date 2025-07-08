@@ -5,7 +5,7 @@ import ProtectedRoutes from '@/components/ProtectedRoutes';
 import AuditLogs from '@/views/AuditLogs';
 import Businesses from '@/views/Businesses';
 import Categories from '@/views/categories/Categories';
-import Dashboard from '@/views/Dashboard';
+import Dashboard from '~/src/views/dashboard/Dashboard';
 import Index from '@/views/Index';
 import Login from '@/views/Login';
 import NotFound from '@/views/NotFound';
