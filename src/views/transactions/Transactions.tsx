@@ -18,6 +18,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/firebase';
 import TransactionDialog from '@/views/transactions/components/TransactionDialog';
 
+import { DateRangePicker } from '../../components/ui/date-range-picker/date-range-picker';
+
 interface Category {
   id: string;
   name: string;
@@ -212,7 +214,7 @@ const Transactions: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
               <div className="relative">
                 <Search className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
                 <Input
@@ -261,6 +263,14 @@ const Transactions: React.FC = () => {
                   <SelectItem value="credit">Credit</SelectItem>
                 </SelectContent>
               </Select>
+              <DateRangePicker
+                onUpdate={(values) => console.log(values)}
+                initialDateFrom="2023-01-01"
+                initialDateTo="2023-12-31"
+                align="start"
+                locale="en-GB"
+                showCompare={false}
+              />
             </div>
 
             <div className="mt-4 flex items-center justify-between">
