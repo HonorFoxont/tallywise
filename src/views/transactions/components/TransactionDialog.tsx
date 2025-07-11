@@ -104,6 +104,7 @@ const TransactionDialog: React.FC<TransactionDialogProps> = ({ open, onOpenChang
       const amountNum = parseFloat(amount);
       const advancePaidNum = type === 'income' && advancePaid ? parseFloat(advancePaid) : 0;
       await addDoc(collection(db, `organizations/${user.organizationId}/transactions`), {
+        userId: user.id,
         categoryId: selectedCategory,
         subCategoryId: selectedSubCategory === 'none' ? null : selectedSubCategory,
         amount: amountNum,

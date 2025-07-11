@@ -33,6 +33,7 @@ interface SubCategory {
 
 interface Transaction {
   id: string;
+  userId: string;
   categoryId: string;
   subCategoryId: string | null;
   amount: number;
