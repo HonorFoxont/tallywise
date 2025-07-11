@@ -118,7 +118,7 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
   // Refs to store the values of range and rangeCompare when the date picker is opened
   const openedRangeRef = useRef<DateRange | undefined>(undefined);
   const openedRangeCompareRef = useRef<DateRange | undefined>(undefined);
-  
+
   const [selectedPreset, setSelectedPreset] = useState<string | undefined>(undefined);
 
   const [isSmallScreen, setIsSmallScreen] = useState(
@@ -322,7 +322,7 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
       }}
     >
       <PopoverTrigger asChild>
-        <Button size="lg" variant="outline">
+        <Button size="lg" variant="outline" className="min-w-[210px]">
           <div className="text-right">
             <div className="py-1">
               <div>{`${formatDate(range.from, locale)}${

@@ -264,7 +264,9 @@ const Transactions: React.FC = () => {
                 </SelectContent>
               </Select>
               <DateRangePicker
-                onUpdate={(values) => console.log(values)}
+                onUpdate={(values) =>
+                  console.log('starts from:' + values.range.from + 'stops at:' + values.range.to)
+                }
                 initialDateFrom="2023-01-01"
                 initialDateTo="2023-12-31"
                 align="start"

@@ -22,7 +22,9 @@ import {
 import TransactionDialog from '@/views/transactions/components/TransactionDialog';
 
 import { useAuth } from '../../contexts/AuthContext';
-import StatsCard from './StatsCard';
+import LineChart from './components/LineChart';
+import PieChart from './components/PieChart';
+import StatsCard from './components/StatsCard';
 
 const recentTransactions = [
   {
@@ -156,6 +158,24 @@ const Dashboard = () => {
           color="bg-blue-500"
         />
       </div>
+      <div className="flex justify-between">
+        <Card className="w-[50%]">
+          <CardHeader>
+            <CardTitle>Transaction Pattern With Respect to Type</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <LineChart />
+          </CardContent>
+        </Card>
+        <Card className="w-[49%]">
+          <CardHeader>
+            <CardTitle>Overall Income According to Category</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <PieChart />
+          </CardContent>
+        </Card>
+      </div>
       <Card>
         <CardHeader>
           <CardTitle>Recent Transactions</CardTitle>
@@ -200,7 +220,7 @@ const Dashboard = () => {
       {/* Floating Action Button */}
       <Button
         size="lg"
-        className="absolute right-4 bottom-4 h-14 w-14 rounded-full shadow-lg"
+        className="fixed right-8 bottom-8 h-14 w-14 cursor-pointer rounded-full shadow-lg"
         onClick={() => setTransactionDialogOpen(true)}
       >
         <Plus className="h-6 w-6" />
