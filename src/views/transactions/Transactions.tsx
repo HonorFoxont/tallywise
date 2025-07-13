@@ -1,11 +1,17 @@
 import { format } from 'date-fns';
 import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
-import { Filter, Plus, Search } from 'lucide-react';
+import { EllipsisVertical, Filter, Plus, Search } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -19,6 +25,8 @@ import { db } from '@/lib/firebase';
 import TransactionDialog from '@/views/transactions/components/TransactionDialog';
 
 import { DateRangePicker } from '../../components/ui/date-range-picker/date-range-picker';
+import DeleteTransactionsDialog from './components/DeleteTransactionDialog';
+import EditTransactionsDialog from './components/EditTransactionDialog';
 
 interface Category {
   id: string;
@@ -51,10 +59,13 @@ const Transactions: React.FC = () => {
   const { user } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [transactionDialogOpen, setTransactionDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -322,6 +333,29 @@ const Transactions: React.FC = () => {
                           <Badge variant="outline" className="capitalize">
                             {transaction.modeOfPayment}
                           </Badge>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger className="cursor-pointer">
+                              <EllipsisVertical className="w-5" />
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setSelectedTransaction(transaction);
+                                  setEditDialogOpen(true);
+                                }}
+                              >
+                                edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setSelectedTransaction(transaction);
+                                  setDeleteDialogOpen(true);
+                                }}
+                              >
+                                delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                         <p className="mb-1 text-gray-600">{transaction.note || 'No note'}</p>
                         <p className="text-xs text-gray-400">
@@ -356,6 +390,16 @@ const Transactions: React.FC = () => {
         </Button>
       </div>
       <TransactionDialog open={transactionDialogOpen} onOpenChange={setTransactionDialogOpen} />
+      <EditTransactionsDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        transaction={selectedTransaction}
+      />
+      <DeleteTransactionsDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        transaction={selectedTransaction}
+      />
     </>
   );
 };
