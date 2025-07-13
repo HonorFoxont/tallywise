@@ -44,7 +44,7 @@ const TransactionDialog: React.FC<TransactionDialogProps> = ({ open, onOpenChang
   const [categories, setCategories] = useState<Category[]>([]);
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
-  const [selectedSubCategory, setSelectedSubCategory] = useState<string | undefined>('none');
+  const [selectedSubCategory, setSelectedSubCategory] = useState<string | undefined>('other');
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
   const [modeOfPayment, setModeOfPayment] = useState<string>('cash');
@@ -74,7 +74,7 @@ const TransactionDialog: React.FC<TransactionDialogProps> = ({ open, onOpenChang
   useEffect(() => {
     if (!user?.organizationId || !selectedCategory) {
       setSubCategories([]);
-      setSelectedSubCategory('none');
+      setSelectedSubCategory('other');
       return;
     }
     const q = query(
@@ -89,7 +89,7 @@ const TransactionDialog: React.FC<TransactionDialogProps> = ({ open, onOpenChang
         ...doc.data(),
       })) as SubCategory[];
       setSubCategories(fetchedSubCategories);
-      setSelectedSubCategory(fetchedSubCategories[0]?.id || 'none');
+      setSelectedSubCategory(fetchedSubCategories[0]?.id || 'other');
     });
     return () => unsubscribe();
   }, [user?.organizationId, selectedCategory]);
@@ -106,7 +106,7 @@ const TransactionDialog: React.FC<TransactionDialogProps> = ({ open, onOpenChang
       await addDoc(collection(db, `organizations/${user.organizationId}/transactions`), {
         userId: user.id,
         categoryId: selectedCategory,
-        subCategoryId: selectedSubCategory === 'none' ? null : selectedSubCategory,
+        subCategoryId: selectedSubCategory === 'other' ? null : selectedSubCategory,
         amount: amountNum,
         type,
         note: note || '',
@@ -124,7 +124,7 @@ const TransactionDialog: React.FC<TransactionDialogProps> = ({ open, onOpenChang
       setDate(new Date().toISOString().split('T')[0]!);
       setAdvancePaid('');
       setSelectedCategory(undefined);
-      setSelectedSubCategory('none');
+      setSelectedSubCategory('other');
       onOpenChange(false);
     } catch (error) {
       console.error('Error adding transaction:', error);
@@ -180,12 +180,12 @@ const TransactionDialog: React.FC<TransactionDialogProps> = ({ open, onOpenChang
                 <SelectValue placeholder="Select subcategory" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">None</SelectItem>
                 {subCategories.map((subCategory) => (
                   <SelectItem key={subCategory.id} value={subCategory.id}>
                     {subCategory.name}
                   </SelectItem>
                 ))}
+                <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
           </div>
