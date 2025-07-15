@@ -72,8 +72,8 @@ const AddUserDialog = ({ open, onOpenChange }: AddUserDialogProps) => {
           ? (newUser?.organizationId ?? '')
           : (user?.organizationId ?? ''),
       isActive: newUser?.isActive ?? false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: new Date().toDateString(),
+      updatedAt: new Date().toDateString(),
     };
 
     setLoading(true);
@@ -104,12 +104,17 @@ const AddUserDialog = ({ open, onOpenChange }: AddUserDialogProps) => {
         </div>
         <div className="space-y-2">
           <Label htmlFor="name">Email:</Label>
-          <Input value={newUser?.email} onChange={(e) => handleChange('email', e.target.value)} />
+          <Input
+            value={newUser?.email}
+            onChange={(e) => handleChange('email', e.target.value)}
+            className="mb-0"
+          />
         </div>
         <div className="space-y-2">
+          <Label htmlFor="role">Role:</Label>
           <Select value={newUser?.role} onValueChange={(e) => handleChange('role', e)}>
             <SelectTrigger>
-              <SelectValue placeholder="Role" />
+              <SelectValue placeholder="Select Role" />
             </SelectTrigger>
             <SelectContent>
               {user?.role === 'superadmin' ? <SelectItem value="admin">Admin</SelectItem> : ''}
@@ -120,12 +125,13 @@ const AddUserDialog = ({ open, onOpenChange }: AddUserDialogProps) => {
         </div>
         {user?.role === 'superadmin' ? (
           <div className="space-y-2">
+            <Label htmlFor="organization">Organization:</Label>
             <Select
               value={newUser?.organizationId}
               onValueChange={(e) => handleChange('organizationId', e)}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Organization" />
+                <SelectValue placeholder="Select Organization" />
               </SelectTrigger>
               <SelectContent>
                 {Organization.map((org) => (
@@ -144,7 +150,7 @@ const AddUserDialog = ({ open, onOpenChange }: AddUserDialogProps) => {
           <Switch
             className="mt-2 ml-1"
             checked={newUser?.isActive}
-            onChange={(checked) => handleChange('isActive', checked)}
+            onCheckedChange={(checked) => handleChange('isActive', checked)}
           />
         </div>
         <div className="flex justify-end">

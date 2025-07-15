@@ -1,5 +1,5 @@
 import { collection, onSnapshot, query } from 'firebase/firestore';
-import { EllipsisVertical, Plus, Search } from 'lucide-react';
+import { BadgeAlert, EllipsisVertical, Plus, Search } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -30,24 +30,17 @@ import {
 } from '@/components/ui/table';
 import { useAuth } from '@/contexts/AuthContext';
 import { type Organization } from '@/types/index';
-import { type UserRole } from '@/types/users';
+import { type User } from '@/types/users';
+import { Switch } from '~/src/components/ui/switch';
 import { db } from '~/src/lib/firebase';
 
 import AddUserDialog from './components/AddUserDialog';
 import DeleteUserDialog from './components/DeleteUserDialog';
 import EditUserDialog from './components/EditUserDialog';
 
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  photoURL?: string;
-  role: UserRole;
-  organizationId: string;
-  isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
+type FilterProps = {
+  organizationfilter: string;
+};
 
 export const Users: React.FC<{}> = () => {
   const { user } = useAuth();
@@ -57,6 +50,12 @@ export const Users: React.FC<{}> = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [Organization, setOrganization] = useState<Organization[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [filter, setFilter] = useState<FilterProps>({
+    organizationfilter: `${user?.organizationId}`,
+  });
+
+  console.log(users);
 
   useEffect(() => {
     if (!user?.organizationId) return;
@@ -70,6 +69,21 @@ export const Users: React.FC<{}> = () => {
     });
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!user?.organizationId) return;
+    const q = query(collection(db, `organizations/${filter.organizationfilter}/users`));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedUsers = snapshot.docs.map((doc) => {
+        return {
+          id: doc.id,
+          ...doc.data(),
+        };
+      }) as User[];
+      setUsers(fetchedUsers);
+    });
+    return () => unsubscribe();
+  }, [filter]);
 
   return (
     <div className="space-y-6">
@@ -114,13 +128,18 @@ export const Users: React.FC<{}> = () => {
               </SelectContent>
             </Select>
             {user?.role === 'superadmin' || user?.role === 'admin' ? (
-              <Select>
+              <Select
+                value={filter.organizationfilter}
+                onValueChange={(value) => {
+                  setFilter({ ...filter, organizationfilter: value });
+                }}
+              >
                 <SelectTrigger className="w-1/4">
                   <SelectValue placeholder="Organization" />
                 </SelectTrigger>
                 <SelectContent>
                   {Organization.map((org) => (
-                    <SelectItem value="manager">{org.name}</SelectItem>
+                    <SelectItem value={org.id}>{org.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -133,55 +152,64 @@ export const Users: React.FC<{}> = () => {
               <TableCaption>A list of all the user in the organization.</TableCaption>
               <TableHeader>
                 <TableRow>
-                  <TableHead>User name</TableHead>
-                  <TableHead>IsActive</TableHead>
+                  <TableHead>User Name</TableHead>
+                  <TableHead>Active Status</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Date added</TableHead>
                   <TableHead>Last modified</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                <TableRow>
-                  <TableCell className="align-center flex">
-                    <div className="mt-1 mr-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={user?.photoURL} />
-                        <AvatarFallback>{user?.name?.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                    </div>
-                    <div className="flex-col">
-                      <div>Dipin Bhattarai</div>
-                      <div className="text-sm text-gray-400">bhattaraidipin@gmail.com</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>true</TableCell>
-                  <TableCell>Admin</TableCell>
-                  <TableCell>March 4, 2024</TableCell>
-                  <TableCell>July 16, 2025</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger className="cursor-pointer">
-                        <EllipsisVertical className="w-5" />
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setEditDialogOpen(true);
-                          }}
-                        >
-                          edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => {
-                            setDeleteDialogOpen(true);
-                          }}
-                        >
-                          delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
+                {users.map((user) => (
+                  <TableRow>
+                    <TableCell className="align-center flex">
+                      <div className="mt-1 mr-3">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage
+                            src={user.photoURL === '' ? '@/assets/defaultuser' : `${user.photoURL}`}
+                          />
+                          <AvatarFallback>{user?.name?.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                      </div>
+                      <div className="flex-col">
+                        <div>{user.name}</div>
+                        <div className="text-sm text-gray-400">{user.email}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Switch checked={user.isActive} className="ml-6" />
+                    </TableCell>
+                    <TableCell>{user.role}</TableCell>
+                    <TableCell>{new Date(user.createdAt).toDateString()}</TableCell>
+                    <TableCell>{new Date(user.createdAt).toDateString()}</TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger className="cursor-pointer">
+                          <EllipsisVertical className="w-5" />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setEditDialogOpen(true);
+                              setSelectedUser(user);
+                            }}
+                          >
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            variant="destructive"
+                            onClick={() => {
+                              setDeleteDialogOpen(true);
+                              setSelectedUser(user);
+                            }}
+                          >
+                            Delete <BadgeAlert />
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </CardContent>

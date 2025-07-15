@@ -44,8 +44,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             role: 'staff', // Default role
             organizationId: '', // Will be assigned by admin
             isActive: false, // Needs admin approval
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            createdAt: new Date().toDateString(),
+            updatedAt: new Date().toDateString(),
           };
 
           await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
