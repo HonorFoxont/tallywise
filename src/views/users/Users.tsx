@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/table';
 import { useAuth } from '@/contexts/AuthContext';
 import { type Organization } from '@/types/index';
-import { type User } from '@/types/users';
+import { type User, UserRole } from '@/types/users';
 import { Switch } from '~/src/components/ui/switch';
 import { db } from '~/src/lib/firebase';
 
@@ -127,7 +127,7 @@ export const Users: React.FC<{}> = () => {
                 <SelectItem value="false">False</SelectItem>
               </SelectContent>
             </Select>
-            {user?.role === 'superadmin' || user?.role === 'admin' ? (
+            {user?.role === UserRole.Superadmin || user?.role === UserRole.Admin ? (
               <Select
                 value={filter.organizationfilter}
                 onValueChange={(value) => {

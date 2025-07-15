@@ -12,7 +12,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/firebase';
-import { type User } from '@/types/users';
+import { type User, UserRole } from '@/types/users';
 import { Button } from '~/src/components/ui/button';
 import { Input } from '~/src/components/ui/input';
 import {
@@ -68,7 +68,7 @@ const AddUserDialog = ({ open, onOpenChange }: AddUserDialogProps) => {
       photoURL: '',
       role: newUser?.role!,
       organizationId:
-        user?.role === 'superadmin'
+        user?.role === UserRole.Superadmin
           ? (newUser?.organizationId ?? '')
           : (user?.organizationId ?? ''),
       isActive: newUser?.isActive ?? false,
@@ -117,13 +117,17 @@ const AddUserDialog = ({ open, onOpenChange }: AddUserDialogProps) => {
               <SelectValue placeholder="Select Role" />
             </SelectTrigger>
             <SelectContent>
-              {user?.role === 'superadmin' ? <SelectItem value="admin">Admin</SelectItem> : ''}
+              {user?.role === UserRole.Superadmin ? (
+                <SelectItem value="admin">Admin</SelectItem>
+              ) : (
+                ''
+              )}
               <SelectItem value="manager">Manager</SelectItem>
               <SelectItem value="user">User</SelectItem>
             </SelectContent>
           </Select>
         </div>
-        {user?.role === 'superadmin' ? (
+        {user?.role === UserRole.Superadmin ? (
           <div className="space-y-2">
             <Label htmlFor="organization">Organization:</Label>
             <Select

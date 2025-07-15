@@ -9,7 +9,7 @@ import React from 'react';
 import { createContext, useContext, useEffect, useState } from 'react';
 
 import { auth, db, googleProvider } from '@/lib/firebase';
-import { type User } from '@/types/users';
+import { UserRole, type User } from '@/types/users';
 
 interface AuthContextType {
   user: User | null;
@@ -31,7 +31,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     return onAuthStateChanged(auth, async (firebaseUser) => {
       setFirebaseUser(firebaseUser);
-
+      
       if (firebaseUser) {
         const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
         if (userDoc.exists()) {
@@ -41,7 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             email: firebaseUser.email!,
             name: firebaseUser.displayName!,
             photoURL: firebaseUser.photoURL || undefined,
-            role: 'staff', // Default role
+            role: UserRole.Staff, // Default role
             organizationId: '', // Will be assigned by admin
             isActive: false, // Needs admin approval
             createdAt: new Date().toDateString(),
