@@ -10,7 +10,7 @@ import Login from '@/views/Login';
 import NotFound from '@/views/NotFound';
 import SubCategories from '@/views/sub-categories/SubCatagories';
 import Transactions from '@/views/transactions/Transactions';
-import { Users } from '@/views/Users';
+import { Users } from '~/src/views/users/Users';
 import Dashboard from '~/src/views/dashboard/Dashboard';
 
 const router = createBrowserRouter([
