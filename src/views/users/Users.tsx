@@ -165,9 +165,7 @@ export const Users: React.FC<{}> = () => {
                     <TableCell className="align-center flex">
                       <div className="mt-1 mr-3">
                         <Avatar className="h-8 w-8">
-                          <AvatarImage
-                            src={user.photoURL === '' ? '@/assets/defaultuser' : `${user.photoURL}`}
-                          />
+                          <AvatarImage src={user.photoURL} />
                           <AvatarFallback>{user?.name?.charAt(0)}</AvatarFallback>
                         </Avatar>
                       </div>

@@ -9,7 +9,7 @@ import React from 'react';
 import { createContext, useContext, useEffect, useState } from 'react';
 
 import { auth, db, googleProvider } from '@/lib/firebase';
-import { UserRole, type User } from '@/types/users';
+import { type User, UserRole } from '@/types/users';
 
 interface AuthContextType {
   user: User | null;
@@ -31,7 +31,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     return onAuthStateChanged(auth, async (firebaseUser) => {
       setFirebaseUser(firebaseUser);
-      
+
       if (firebaseUser) {
         const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
         if (userDoc.exists()) {
