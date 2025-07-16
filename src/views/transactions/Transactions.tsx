@@ -72,6 +72,10 @@ const Transactions: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [paymentFilter, setPaymentFilter] = useState('all');
+  const [dateRangeFilter, setDateRangeFilter] = useState({
+    start: new Date(),
+    end: new Date(),
+  });
 
   // Fetch categories
   useEffect(() => {
@@ -159,7 +163,9 @@ const Transactions: React.FC = () => {
     if (paymentFilter !== 'all') {
       filtered = filtered.filter((t) => t.modeOfPayment === paymentFilter);
     }
-
+    filtered = filtered.filter(
+      (t) => t.createdAt > dateRangeFilter.start && t.createdAt < dateRangeFilter.end
+    );
     setFilteredTransactions(filtered);
   }, [
     transactions,
@@ -169,6 +175,7 @@ const Transactions: React.FC = () => {
     typeFilter,
     categoryFilter,
     paymentFilter,
+    dateRangeFilter,
   ]);
 
   const getTransactionTypeColor = (type: string) => {
@@ -277,10 +284,13 @@ const Transactions: React.FC = () => {
               </Select>
               <DateRangePicker
                 onUpdate={(values) =>
-                  console.log('starts from:' + values.range.from + 'stops at:' + values.range.to)
+                  setDateRangeFilter({
+                    start: values.range.from,
+                    end: values.range.to!,
+                  })
                 }
-                initialDateFrom="2023-01-01"
-                initialDateTo="2023-12-31"
+                initialDateFrom={dateRangeFilter.start}
+                initialDateTo={dateRangeFilter.end}
                 align="start"
                 locale="en-GB"
                 showCompare={false}
