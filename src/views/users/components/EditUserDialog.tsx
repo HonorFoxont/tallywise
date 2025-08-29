@@ -96,7 +96,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({ open, onOpenChange, use
                 ''
               )}
               <SelectItem value="manager">Manager</SelectItem>
-              <SelectItem value="user">User</SelectItem>
+              <SelectItem value="staff">Staff</SelectItem>
             </SelectContent>
           </Select>
         </div>

@@ -123,7 +123,7 @@ const AddUserDialog = ({ open, onOpenChange }: AddUserDialogProps) => {
                 ''
               )}
               <SelectItem value="manager">Manager</SelectItem>
-              <SelectItem value="user">User</SelectItem>
+              <SelectItem value="staff">Staff</SelectItem>
             </SelectContent>
           </Select>
         </div>
