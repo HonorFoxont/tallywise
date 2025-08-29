@@ -22,12 +22,9 @@ const Index = () => {
         // User needs to be assigned to an organization
         return;
       }
-      if (user.role == 'superadmin') {
-        navigate('/users');
-      } else {
-        // User is active and has organization, redirect to dashboard
-        navigate('/dashboard');
-      }
+      
+      // User is active and has organization, redirect to dashboard
+      navigate('/dashboard');
     }
   }, [user, loading, navigate]);
 

@@ -40,6 +40,8 @@ import EditUserDialog from './components/EditUserDialog';
 
 type FilterProps = {
   organizationfilter: string;
+  roleFilter: string;
+  isActive: boolean | null;
 };
 
 export const Users: React.FC<{}> = () => {
@@ -53,10 +55,12 @@ export const Users: React.FC<{}> = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [filter, setFilter] = useState<FilterProps>({
     organizationfilter: `${user?.organizationId}`,
+    roleFilter: '',
+    isActive: null,
   });
+  const [filteredUser, setFilteredUser] = useState<User[]>(users);
 
-  console.log(users);
-
+  //Fetching Organizations
   useEffect(() => {
     if (!user?.organizationId) return;
     const q = query(collection(db, `organizations`));
@@ -70,6 +74,7 @@ export const Users: React.FC<{}> = () => {
     return () => unsubscribe();
   }, []);
 
+  //Fetching Users
   useEffect(() => {
     if (!user?.organizationId) return;
     const q = query(collection(db, `organizations/${filter.organizationfilter}/users`));
@@ -85,6 +90,38 @@ export const Users: React.FC<{}> = () => {
     return () => unsubscribe();
   }, [filter]);
 
+  //Applying Filter
+  useEffect(() => {
+    let filtered = users;
+
+    if (searchTerm) {
+      filtered = filtered.filter((user) => {
+        const userName = users.find((u) => u.id === user.id)?.name || '';
+        const userEmail = users.find((u) => u.id === user.id)?.email || '';
+        return (
+          userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          userEmail.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      });
+    }
+    if (filter.roleFilter != '') {
+      filtered = filtered.filter((user) => user.role === filter.roleFilter);
+    }
+    if (filter.isActive != null) {
+      filtered = filtered.filter((user) => user.isActive === filter.isActive);
+    }
+    setFilteredUser(filtered);
+  }, [searchTerm, users, filter]);
+
+  const clearFilters = () => {
+    setFilter({
+      organizationfilter: `${user?.organizationId}`,
+      roleFilter: '',
+      isActive: null,
+    });
+    setSearchTerm('');
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -99,53 +136,78 @@ export const Users: React.FC<{}> = () => {
           </Button>
         </div>
         <Card>
-          <CardHeader className="flex justify-evenly border-b-2 border-gray-400 pb-4">
-            <div className="relative w-1/4">
-              <Search className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search User..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Select>
-              <SelectTrigger className="w-1/4">
-                <SelectValue placeholder="Role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="manager">Manager</SelectItem>
-                <SelectItem value="user">User</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select>
-              <SelectTrigger className="w-1/4">
-                <SelectValue placeholder="isActive" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="true">True</SelectItem>
-                <SelectItem value="false">False</SelectItem>
-              </SelectContent>
-            </Select>
-            {user?.role === UserRole.Superadmin || user?.role === UserRole.Admin ? (
+          <CardHeader className="flex-col border-b-2 border-gray-400 pb-4">
+            <div className="flex justify-evenly gap-2">
+              <div className="relative w-1/4">
+                <Search className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search User..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
               <Select
-                value={filter.organizationfilter}
-                onValueChange={(value) => {
-                  setFilter({ ...filter, organizationfilter: value });
-                }}
+                value={filter.roleFilter}
+                onValueChange={(value) => setFilter({ ...filter, roleFilter: value })}
               >
                 <SelectTrigger className="w-1/4">
-                  <SelectValue placeholder="Organization" />
+                  <SelectValue placeholder="Role" />
+                </SelectTrigger>
+                {user?.role == UserRole.Superadmin ? (
+                  <SelectContent>
+                    <SelectItem value={UserRole.Admin}>Admin</SelectItem>
+                    <SelectItem value={UserRole.Manager}>Manager</SelectItem>
+                    <SelectItem value={UserRole.Staff}>Staff</SelectItem>
+                  </SelectContent>
+                ) : (
+                  <SelectContent>
+                    <SelectItem value={UserRole.Manager}>Manager</SelectItem>
+                    <SelectItem value={UserRole.Staff}>Staff</SelectItem>
+                  </SelectContent>
+                )}
+              </Select>
+              <Select
+                value={filter.isActive != null ? String(filter.isActive) : ''}
+                onValueChange={(val) =>
+                  val
+                    ? setFilter({ ...filter, isActive: val === 'true' })
+                    : setFilter({ ...filter, isActive: null })
+                }
+              >
+                <SelectTrigger className="w-1/4">
+                  <SelectValue placeholder="isActive" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Organization.map((org) => (
-                    <SelectItem value={org.id}>{org.name}</SelectItem>
-                  ))}
+                  <SelectItem value="true">True</SelectItem>
+                  <SelectItem value="false">False</SelectItem>
                 </SelectContent>
               </Select>
-            ) : (
-              ''
-            )}
+              {user?.role === UserRole.Superadmin || user?.role === UserRole.Admin ? (
+                <Select
+                  value={filter.organizationfilter}
+                  onValueChange={(value) => {
+                    setFilter({ ...filter, organizationfilter: value });
+                  }}
+                >
+                  <SelectTrigger className="w-1/4">
+                    <SelectValue placeholder="Organization" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Organization.map((org) => (
+                      <SelectItem value={org.id}>{org.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                ''
+              )}
+            </div>
+            <div className="mt-4 flex justify-end">
+              <Button variant="outline" size="sm" onClick={clearFilters}>
+                Clear Filters
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <Table className="mx-auto w-[95%]">
@@ -160,7 +222,7 @@ export const Users: React.FC<{}> = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((user) => (
+                {filteredUser.map((user) => (
                   <TableRow>
                     <TableCell className="align-center flex">
                       <div className="mt-1 mr-3">

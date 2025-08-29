@@ -41,9 +41,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             email: firebaseUser.email!,
             name: firebaseUser.displayName!,
             photoURL: firebaseUser.photoURL || undefined,
-            role: UserRole.Staff, // Default role
-            organizationId: '', // Will be assigned by admin
-            isActive: false, // Needs admin approval
+            role: UserRole.Staff,
+            organizationId: '',
+            isActive: false,
             createdAt: new Date().toDateString(),
             updatedAt: new Date().toDateString(),
           };
