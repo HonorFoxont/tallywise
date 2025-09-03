@@ -78,7 +78,7 @@ const AddUserDialog = ({ open, onOpenChange }: AddUserDialogProps) => {
 
     setLoading(true);
     try {
-      await addDoc(collection(db, `organizations/${addUser.organizationId}/users`), addUser);
+      await addDoc(collection(db, `users`), addUser);
       toast.success('User created successfully');
       setNewUser(null);
       onOpenChange(false);

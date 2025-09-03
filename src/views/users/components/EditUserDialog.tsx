@@ -42,7 +42,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({ open, onOpenChange, use
     }
     setLoading(true);
     try {
-      updateDoc(doc(db, `organizations/${userInfo?.organizationId}/users/${userInfo?.id}`), {
+      updateDoc(doc(db, `users/${userInfo?.id}`), {
         ...userInfo,
         name: editUser.name,
         role: editUser.role,

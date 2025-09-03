@@ -29,7 +29,7 @@ const DeleteUserDialog: React.FC<DeleteUserDialogProps> = ({ open, onOpenChange,
       return;
     }
 
-    const document = doc(db, `organizations/${userInfo.organizationId}/users/${userInfo.id}`);
+    const document = doc(db, `users/${userInfo.id}`);
 
     setLoading(true);
     try {

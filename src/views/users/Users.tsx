@@ -1,4 +1,4 @@
-import { collection, onSnapshot, query } from 'firebase/firestore';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { BadgeAlert, EllipsisVertical, Plus, Search } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
@@ -51,7 +51,7 @@ export const Users: React.FC<{}> = () => {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [Organization, setOrganization] = useState<Organization[]>([]);
+  const [organization, setOrganization] = useState<Organization[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [filter, setFilter] = useState<FilterProps>({
     organizationfilter: `${user?.organizationId}`,
@@ -77,17 +77,19 @@ export const Users: React.FC<{}> = () => {
   //Fetching Users
   useEffect(() => {
     if (!user?.organizationId) return;
-    const q = query(collection(db, `organizations/${filter.organizationfilter}/users`));
+    const q = query(
+      collection(db, 'users'),
+      where('organizationId', '==', filter.organizationfilter)
+    );
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetchedUsers = snapshot.docs.map((doc) => {
-        return {
-          id: doc.id,
-          ...doc.data(),
-        };
-      }) as User[];
+      const fetchedUsers = snapshot.docs
+        .map((doc) => ({ id: doc.id, ...doc.data() }))
+        .filter((user: any) => user.role !== UserRole.Superadmin) as User[];
+
       setUsers(fetchedUsers);
+      return () => unsubscribe();
     });
-    return () => unsubscribe();
   }, [filter]);
 
   //Applying Filter
@@ -194,7 +196,7 @@ export const Users: React.FC<{}> = () => {
                     <SelectValue placeholder="Organization" />
                   </SelectTrigger>
                   <SelectContent>
-                    {Organization.map((org) => (
+                    {organization.map((org) => (
                       <SelectItem value={org.id}>{org.name}</SelectItem>
                     ))}
                   </SelectContent>

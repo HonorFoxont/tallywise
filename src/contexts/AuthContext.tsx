@@ -27,7 +27,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState<boolean>(true);
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [user, setUser] = useState<User | null>(null);
-
+  
   useEffect(() => {
     return onAuthStateChanged(auth, async (firebaseUser) => {
       setFirebaseUser(firebaseUser);
