@@ -43,7 +43,7 @@ const DeleteUserDialog: React.FC<DeleteUserDialogProps> = ({ open, onOpenChange,
       setLoading(false);
     }
   };
-
+  
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>

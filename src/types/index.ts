@@ -4,8 +4,8 @@ export interface Organization {
   id: string;
   name: string;
   isActive: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: str;
+  updatedAt: string;
 }
 
 export interface Transaction {
