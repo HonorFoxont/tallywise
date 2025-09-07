@@ -4,12 +4,15 @@ import {
   signOut as firebaseSignOut,
   type User as FirebaseUser,
 } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import React from 'react';
 import { createContext, useContext, useEffect, useState } from 'react';
+import { toast } from 'react-toastify';
 
 import { auth, db, googleProvider } from '@/lib/firebase';
-import { type User, UserRole } from '@/types/users';
+import { type Organization, type User } from '@/types';
+
+import { getUserByEmail } from '../apis/users';
 
 interface AuthContextType {
   user: User | null;
@@ -27,34 +30,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState<boolean>(true);
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  
+
   useEffect(() => {
     return onAuthStateChanged(auth, async (firebaseUser) => {
       setFirebaseUser(firebaseUser);
 
-      if (firebaseUser) {
-        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-        if (userDoc.exists()) {
-          setUser({ id: firebaseUser.uid, ...userDoc.data() } as User);
-        } else {
-          const newUser: Omit<User, 'id'> = {
-            email: firebaseUser.email!,
-            name: firebaseUser.displayName!,
-            photoURL: firebaseUser.photoURL || undefined,
-            role: UserRole.Staff,
-            organizationId: '',
-            isActive: false,
-            createdAt: new Date().toDateString(),
-            updatedAt: new Date().toDateString(),
-          };
+      if (firebaseUser && firebaseUser?.email) {
+        try {
+          const userData = await getUserByEmail(firebaseUser.email);
 
-          await setDoc(doc(db, 'users', firebaseUser.uid), newUser);
-          setUser({ id: firebaseUser.uid, ...newUser });
+          if (!userData.isActive) {
+            toast.error('Your account is inactive. Please contact support.');
+            setLoading(false);
+            return;
+          }
+
+          if (!userData.organizationId) {
+            toast.error('No organization assigned to your account.');
+            setLoading(false);
+            return;
+          }
+
+          const orgDoc = await getDoc(doc(db, 'organizations', userData.organizationId));
+          if (orgDoc.exists()) {
+            const orgData = orgDoc.data() as Organization;
+
+            if (!orgData.isActive) {
+              toast.error('Your organization is inactive. Please contact admin.');
+              setLoading(false);
+              return;
+            }
+
+            // Everything is valid
+            setUser(userData);
+            setLoading(false);
+          } else {
+            toast.error('Organization record not found.');
+            setLoading(false);
+          }
+        } catch (error) {
+          toast.error(error.message);
+          setLoading(false);
         }
       } else {
-        setUser(null);
+        if (!window.location.pathname.includes('login')) {
+          window.location.href = '/login';
+        }
+        setLoading(false);
       }
-      setLoading(false);
     });
   }, []);
 
@@ -62,7 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await signInWithPopup(auth, googleProvider);
     } catch (error) {
-      console.error('Error signing in with Google: ' + error);
+      toast.error('Error signing in with Google: ' + error.message);
       throw error;
     }
   };
@@ -71,7 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await firebaseSignOut(auth);
     } catch (error) {
-      console.error('Error signing out:' + error);
+      toast.error('Error signing out: ' + error.message);
       throw error;
     }
   };
