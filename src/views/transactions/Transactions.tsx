@@ -1,6 +1,7 @@
 import { format } from 'date-fns';
 import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { EllipsisVertical, Filter, Plus, Search } from 'lucide-react';
+import moment from 'moment';
 import React, { useEffect, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
@@ -73,8 +74,8 @@ const Transactions: React.FC = () => {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [paymentFilter, setPaymentFilter] = useState('all');
   const [dateRangeFilter, setDateRangeFilter] = useState({
-    start: new Date(),
-    end: new Date(),
+    start: moment().startOf('day').toDate(),
+    end: moment().endOf('day').toDate(),
   });
 
   // Fetch categories
