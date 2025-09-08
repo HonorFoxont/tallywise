@@ -1,8 +1,6 @@
-import { TrendingDown, TrendingUp } from 'lucide-react';
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-const StatsCard = ({ title, value, change, icon, trend, color }) => {
+const StatsCard = ({ title, value, icon, trend, color }) => {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -15,11 +13,7 @@ const StatsCard = ({ title, value, change, icon, trend, color }) => {
           className={`mt-1 flex items-center text-xs ${
             trend === 'up' ? 'text-green-600' : trend === 'down' ? 'text-red-600' : 'text-gray-600'
           }`}
-        >
-          {trend === 'up' && <TrendingUp className="mr-1 h-3 w-3" />}
-          {trend === 'down' && <TrendingDown className="mr-1 h-3 w-3" />}
-          {change}
-        </div>
+        ></div>
       </CardContent>
     </Card>
   );
