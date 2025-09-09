@@ -321,7 +321,7 @@ export const DateRangePicker: FC<DateRangePickerProps> & {
         setIsOpen(open);
       }}
     >
-      <PopoverTrigger asChild>
+      <PopoverTrigger asChild className="w-">
         <Button size="lg" variant="outline" className="min-w-[210px]">
           <div className="text-right">
             <div className="py-1">

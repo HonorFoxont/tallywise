@@ -67,6 +67,7 @@ const Dashboard = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [subCategories, setSubCategories] = useState<Record<string, SubCategory[]>>({});
   const [selectedType, setSelectedType] = useState<'income' | 'expense' | 'savings' | 'all'>('all');
+  const [pieChartType, setPieChartType] = useState<'income' | 'expense' | 'savings'>('income');
   const [dateRangeFilter, setDateRangeFilter] = useState({
     start: new Date(new Date().setDate(new Date().getDate() - 7)), // Last 7 days
     end: new Date(),
@@ -75,7 +76,7 @@ const Dashboard = () => {
   // Check if user is admin or superadmin
   const isAdminOrSuperadmin = ['superadmin', 'admin'].includes(user?.role || '');
 
-  // Chart configuration (moved above pieChartData)
+  // Chart configuration
   const chartConfig = {
     income: { label: 'Income', color: 'hsl(160, 81%, 43%)' }, // #10B981
     expense: { label: 'Expense', color: 'hsl(0, 77%, 60%)' }, // #EF4444
@@ -177,7 +178,7 @@ const Dashboard = () => {
     return () => unsubscribe();
   }, [user, dateRangeFilter]);
 
-  // Filter transactions by type
+  // Filter transactions by type for table and line chart
   const filteredTransactions = useMemo(() => {
     return selectedType === 'all'
       ? transactions
@@ -264,7 +265,8 @@ const Dashboard = () => {
 
   // Pie Chart Data
   const pieChartData = useMemo(() => {
-    const categoryMap = categories.reduce(
+    const filteredCategories = categories.filter((category) => category.type === pieChartType);
+    const categoryMap = filteredCategories.reduce(
       (acc, category) => {
         acc[category.id] = {
           name: category.name,
@@ -276,14 +278,16 @@ const Dashboard = () => {
       {} as Record<string, { name: string; value: number; fill: string }>
     );
 
-    filteredTransactions.forEach((t) => {
-      if (categoryMap[t.categoryId]) {
-        categoryMap[t.categoryId]!.value += t.amount;
-      }
-    });
+    filteredTransactions
+      .filter((t) => t.type === pieChartType)
+      .forEach((t) => {
+        if (categoryMap[t.categoryId]) {
+          categoryMap[t.categoryId]!.value += t.amount;
+        }
+      });
 
     return Object.values(categoryMap).filter((cat) => cat.value > 0);
-  }, [filteredTransactions, categories]);
+  }, [filteredTransactions, categories, pieChartType]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -324,177 +328,200 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 p-4">
-      <div>
+    <div>
+      <div className="mb-2">
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
         <p className="text-gray-600">Welcome back, {user?.name || 'User'}</p>
       </div>
-      <div className="flex justify-between gap-4">
-        <Select
-          value={selectedType}
-          onValueChange={(value) =>
-            setSelectedType(value as 'income' | 'expense' | 'savings' | 'all')
-          }
-        >
-          <SelectTrigger className="w-40">
-            <SelectValue placeholder="All Transactions" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            <SelectItem value="income">Income</SelectItem>
-            <SelectItem value="expense">Expense</SelectItem>
-            <SelectItem value="savings">Savings</SelectItem>
-          </SelectContent>
-        </Select>
-        <DateRangePicker
-          onUpdate={(values) =>
-            setDateRangeFilter({
-              start: values.range.from,
-              end: values.range.to || new Date(),
-            })
-          }
-          initialDateFrom={dateRangeFilter.start}
-          initialDateTo={dateRangeFilter.end}
-          align="start"
-          locale="en-GB"
-          showCompare={false}
-        />
-      </div>
-      <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <StatsCard
-          title="Total Income"
-          value={statsData.totalIncome}
-          icon={<TrendingUp className="h-4 w-4 text-white" />}
-          trend="up"
-          color="bg-green-500"
-        />
-        <StatsCard
-          title="Total Expenses"
-          value={statsData.totalExpense}
-          icon={<TrendingDown className="h-4 w-4 text-white" />}
-          trend="up"
-          color="bg-red-500"
-        />
-        <StatsCard
-          title="Total Savings"
-          value={statsData.totalSavings}
-          icon={<PiggyBank className="h-4 w-4 text-white" />}
-          trend="up"
-          color="bg-blue-500"
-        />
-      </div>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Transaction Pattern With Respect to Type</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-96 w-full">
-              <LineChart data={lineChartData} />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Overall Income According to Category</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-96 w-full">
-              <PieChart data={pieChartData} />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Transactions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Type</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>SubCategory</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Mode of Payment</TableHead>
-                <TableHead>Date</TableHead>
-                {isAdminOrSuperadmin && <TableHead>Actions</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {recentTransactions.map((transaction) => (
-                <TableRow key={transaction.id}>
-                  <TableCell>
-                    <Badge className={getTransactionTypeColor(transaction.type)}>
-                      {transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{transaction.category}</TableCell>
-                  <TableCell>{transaction.subCategory}</TableCell>
-                  <TableCell>{formatCurrency(transaction.amount)}</TableCell>
-                  <TableCell>
-                    <Badge className={getModeOfPaymentColor(transaction.modeOfPayment)}>
-                      {transaction.modeOfPayment.charAt(0).toUpperCase() +
-                        transaction.modeOfPayment.slice(1)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{format(transaction.date, 'MMM dd, yyyy')}</TableCell>
-                  {isAdminOrSuperadmin && (
-                    <TableCell>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedTransaction(transaction);
-                            setEditTransactionDialogOpen(true);
-                          }}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedTransaction(transaction);
-                            setDeleteTransactionDialogOpen(true);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  )}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
 
-      {isAdminOrSuperadmin && (
-        <>
-          <Button
-            size="lg"
-            className="fixed right-8 bottom-8 h-14 w-14 cursor-pointer rounded-full shadow-lg"
-            onClick={() => setTransactionDialogOpen(true)}
+      <div className="space-y-6">
+        <div className="flex justify-between gap-4">
+          <Select
+            value={selectedType}
+            onValueChange={(value) =>
+              setSelectedType(value as 'income' | 'expense' | 'savings' | 'all')
+            }
           >
-            <Plus className="h-6 w-6" />
-          </Button>
-          <TransactionDialog open={transactionDialogOpen} onOpenChange={setTransactionDialogOpen} />
-          <EditTransactionDialog
-            open={editTransactionDialogOpen}
-            onOpenChange={setEditTransactionDialogOpen}
-            transaction={selectedTransaction}
+            <SelectTrigger className="w-40">
+              <SelectValue placeholder="All Transactions" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="income">Income</SelectItem>
+              <SelectItem value="expense">Expense</SelectItem>
+              <SelectItem value="savings">Savings</SelectItem>
+            </SelectContent>
+          </Select>
+          <DateRangePicker
+            onUpdate={(values) =>
+              setDateRangeFilter({
+                start: values.range.from,
+                end: values.range.to || new Date(),
+              })
+            }
+            initialDateFrom={dateRangeFilter.start}
+            initialDateTo={dateRangeFilter.end}
+            align="start"
+            locale="en-GB"
+            showCompare={false}
           />
-          <DeleteTransactionDialog
-            open={deleteTransactionDialogOpen}
-            onOpenChange={setDeleteTransactionDialogOpen}
-            transaction={selectedTransaction}
+        </div>
+        <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <StatsCard
+            title="Total Income"
+            value={statsData.totalIncome}
+            icon={<TrendingUp className="h-4 w-4 text-white" />}
+            trend="up"
+            color="bg-green-500"
           />
-        </>
-      )}
+          <StatsCard
+            title="Total Expenses"
+            value={statsData.totalExpense}
+            icon={<TrendingDown className="h-4 w-4 text-white" />}
+            trend="up"
+            color="bg-red-500"
+          />
+          <StatsCard
+            title="Total Savings"
+            value={statsData.totalSavings}
+            icon={<PiggyBank className="h-4 w-4 text-white" />}
+            trend="up"
+            color="bg-blue-500"
+          />
+        </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Transaction Pattern With Respect to Type</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-96 w-full">
+                <LineChart data={lineChartData} />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Overall Income According to Category</CardTitle>
+                <Select
+                  value={pieChartType}
+                  onValueChange={(value) =>
+                    setPieChartType(value as 'income' | 'expense' | 'savings')
+                  }
+                >
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="Select Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="income">Income</SelectItem>
+                    <SelectItem value="expense">Expense</SelectItem>
+                    <SelectItem value="savings">Savings</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="h-96 w-full">
+                <PieChart data={pieChartData} />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Transactions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>SubCategory</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>Mode of Payment</TableHead>
+                  <TableHead>Date</TableHead>
+                  {isAdminOrSuperadmin && <TableHead>Actions</TableHead>}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {recentTransactions.map((transaction) => (
+                  <TableRow key={transaction.id}>
+                    <TableCell>
+                      <Badge className={getTransactionTypeColor(transaction.type)}>
+                        {transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{transaction.category}</TableCell>
+                    <TableCell>{transaction.subCategory}</TableCell>
+                    <TableCell>{formatCurrency(transaction.amount)}</TableCell>
+                    <TableCell>
+                      <Badge className={getModeOfPaymentColor(transaction.modeOfPayment)}>
+                        {transaction.modeOfPayment.charAt(0).toUpperCase() +
+                          transaction.modeOfPayment.slice(1)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{format(transaction.date, 'MMM dd, yyyy')}</TableCell>
+                    {isAdminOrSuperadmin && (
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedTransaction(transaction);
+                              setEditTransactionDialogOpen(true);
+                            }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedTransaction(transaction);
+                              setDeleteTransactionDialogOpen(true);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        {isAdminOrSuperadmin && (
+          <>
+            <Button
+              size="lg"
+              className="fixed right-8 bottom-8 h-14 w-14 cursor-pointer rounded-full shadow-lg"
+              onClick={() => setTransactionDialogOpen(true)}
+            >
+              <Plus className="h-6 w-6" />
+            </Button>
+            <TransactionDialog
+              open={transactionDialogOpen}
+              onOpenChange={setTransactionDialogOpen}
+            />
+            <EditTransactionDialog
+              open={editTransactionDialogOpen}
+              onOpenChange={setEditTransactionDialogOpen}
+              transaction={selectedTransaction}
+            />
+            <DeleteTransactionDialog
+              open={deleteTransactionDialogOpen}
+              onOpenChange={setDeleteTransactionDialogOpen}
+              transaction={selectedTransaction}
+            />
+          </>
+        )}
+      </div>
     </div>
   );
 };

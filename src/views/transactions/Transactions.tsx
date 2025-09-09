@@ -228,74 +228,79 @@ const Transactions: React.FC = () => {
         {/* Filters */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="justify-strech flex">
               <Filter className="h-5 w-5" />
               Filters
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-5">
-              <div className="relative">
-                <Search className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search transactions..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
+            <div className="flex w-full gap-2">
+              <div className="flex w-1/2 justify-evenly gap-2">
+                <div className="relative flex-shrink-0">
+                  <Search className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Search transactions..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+
+                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Transaction Type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="income">Income</SelectItem>
+                    <SelectItem value="expense">Expense</SelectItem>
+                    <SelectItem value="savings">Savings</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Transaction Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="income">Income</SelectItem>
-                  <SelectItem value="expense">Expense</SelectItem>
-                  <SelectItem value="savings">Savings</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={paymentFilter} onValueChange={setPaymentFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Payment Mode" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Payments</SelectItem>
-                  <SelectItem value="cash">Cash</SelectItem>
-                  <SelectItem value="fonepay">Fonepay</SelectItem>
-                  <SelectItem value="esewa">Esewa</SelectItem>
-                  <SelectItem value="credit">Credit</SelectItem>
-                </SelectContent>
-              </Select>
-              <DateRangePicker
-                onUpdate={(values) =>
-                  setDateRangeFilter({
-                    start: values.range.from,
-                    end: values.range.to!,
-                  })
-                }
-                initialDateFrom={dateRangeFilter.start}
-                initialDateTo={dateRangeFilter.end}
-                align="start"
-                locale="en-GB"
-                showCompare={false}
-              />
+              <div className="flex w-1/2 justify-evenly gap-2">
+                <Select value={paymentFilter} onValueChange={setPaymentFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Payment Mode" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Payments</SelectItem>
+                    <SelectItem value="cash">Cash</SelectItem>
+                    <SelectItem value="fonepay">Fonepay</SelectItem>
+                    <SelectItem value="esewa">Esewa</SelectItem>
+                    <SelectItem value="credit">Credit</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="flex-shrink-0">
+                  <DateRangePicker
+                    onUpdate={(values) =>
+                      setDateRangeFilter({
+                        start: values.range.from,
+                        end: values.range.to!,
+                      })
+                    }
+                    initialDateFrom={dateRangeFilter.start}
+                    initialDateTo={dateRangeFilter.end}
+                    align="start"
+                    locale="en-GB"
+                    showCompare={false}
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="mt-4 flex items-center justify-between">

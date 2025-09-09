@@ -1,5 +1,6 @@
-import { Bolt, FileText, Home, LogOut, Receipt, Settings, User, Users } from 'lucide-react';
-import React from 'react';
+import clsx from 'clsx';
+import { Bolt, FileText, Home, LogOut, Receipt, Settings, Users } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import { Link, Outlet } from 'react-router-dom';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -8,7 +9,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -19,48 +19,56 @@ import {
   SidebarGroupContent,
   SidebarHeader,
   SidebarProvider,
+  SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { useAuth } from '@/contexts/AuthContext';
+import { useIsMobile } from '~/src/hooks/use-mobile';
+
+const navigationItems = [
+  {
+    name: 'Dashboard',
+    href: '/dashboard',
+    icon: Home,
+    roles: ['superadmin', 'admin', 'manager', 'staff'],
+  },
+  {
+    name: 'Transactions',
+    href: '/transactions',
+    icon: Receipt,
+    roles: ['superadmin', 'admin', 'manager', 'staff'],
+  },
+  { name: 'Users', href: '/users', icon: Users, roles: ['superadmin', 'admin', 'manager'] },
+  {
+    name: 'Categories',
+    href: '/metadata/categories',
+    icon: Settings,
+    roles: ['superadmin', 'admin', 'manager'],
+  },
+  {
+    name: 'Sub-Catagories',
+    href: '/metadata/subcategories',
+    icon: Bolt,
+    roles: ['superadmin', 'admin', 'manager'],
+  },
+  { name: 'Businesses', href: '/businesses', icon: FileText, roles: ['superadmin'] },
+];
 
 export const AppLayout: React.FC = () => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { user, signOut } = useAuth();
 
-  const navigationItems = [
-    {
-      name: 'Dashboard',
-      href: '/dashboard',
-      icon: Home,
-      roles: ['superadmin', 'admin', 'manager', 'staff'],
-    },
-    {
-      name: 'Transactions',
-      href: '/transactions',
-      icon: Receipt,
-      roles: ['superadmin', 'admin', 'manager', 'staff'],
-    },
-    { name: 'Users', href: '/users', icon: Users, roles: ['superadmin', 'admin', 'manager'] },
-    {
-      name: 'Categories',
-      href: '/metadata/categories',
-      icon: Settings,
-      roles: ['superadmin', 'admin', 'manager'],
-    },
-    {
-      name: 'Sub-Catagories',
-      href: '/metadata/subcategories',
-      icon: Bolt,
-      roles: ['superadmin', 'admin', 'manager'],
-    },
-    { name: 'Businesses', href: '/businesses', icon: FileText, roles: ['superadmin'] },
-    { name: 'Audit Logs', href: '/audit-logs', icon: FileText, roles: ['superadmin', 'admin'] },
-  ];
+  const isMobile = useIsMobile();
 
   const filteredNavigation = navigationItems.filter(
     (item) => user && item.roles.includes(user.role)
   );
 
+  useEffect(() => {
+    setSidebarOpen(!isMobile);
+  }, [isMobile]);
+
   return (
-    <SidebarProvider>
+    <SidebarProvider open={sidebarOpen} onOpenChange={setSidebarOpen}>
       <div className="min-h-screen w-full bg-gray-50">
         <Side>
           <SidebarHeader className="bg-blue-500 text-center text-xl font-bold text-white">
@@ -100,17 +108,6 @@ export const AppLayout: React.FC = () => {
                 </DropdownMenuTrigger>
 
                 <DropdownMenuContent align="end" className="w-56">
-                  <Link to="/profile">
-                    <DropdownMenuItem>
-                      <User className="mr-2 h-4 w-4" />
-                      Profile
-                    </DropdownMenuItem>
-                  </Link>
-                  <DropdownMenuItem>
-                    <Settings className="mr-2 h-4 w-4" />
-                    Settings
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={signOut}>
                     <LogOut className="mr-2 h-4 w-4" />
                     Sign out
@@ -122,7 +119,8 @@ export const AppLayout: React.FC = () => {
         </Side>
 
         {/* Main content */}
-        <div className="lg:ml-64">
+        <div className={clsx(sidebarOpen ? 'lg:ml-64' : '', 'transition-all duration-300')}>
+          <SidebarTrigger className="absolute z-2" />
           <main className="p-6">
             <Outlet />
           </main>

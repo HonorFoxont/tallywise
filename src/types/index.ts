@@ -4,7 +4,7 @@ export interface Organization {
   id: string;
   name: string;
   isActive: boolean;
-  createdAt: str;
+  createdAt: string;
   updatedAt: string;
 }
 
@@ -46,15 +46,4 @@ export interface SubCategory {
   categoryId: string;
   organizationId: string;
   createdAt: Date;
-}
-
-export interface AuditLog {
-  id: string;
-  actionType: 'create' | 'update' | 'delete';
-  targetType: 'transaction' | 'user' | 'category' | 'subcategory';
-  byUser: string;
-  timestamp: Date;
-  organizationId: string;
-  before?: any;
-  after?: any;
 }
