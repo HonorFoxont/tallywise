@@ -132,7 +132,7 @@ export const Users: React.FC<{}> = () => {
       </div>
       <div>
         <div className="align-center mb-3 flex justify-between">
-          <h1 className="text-md pt-2 font-bold text-gray-900">All Users: 3</h1>
+          <h1 className="text-md pt-2 font-bold text-gray-900">All Users: {users.length}</h1>
           <Button onClick={() => setAddDialogOpen(true)} className="cursor-pointer">
             <Plus /> Add User
           </Button>

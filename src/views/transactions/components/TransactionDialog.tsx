@@ -1,3 +1,4 @@
+import { Root, ScrollAreaViewport, Scrollbar } from '@radix-ui/react-scroll-area';
 import { addDoc, collection, onSnapshot, query, where } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
@@ -136,131 +137,136 @@ const TransactionDialog: React.FC<TransactionDialogProps> = ({ open, onOpenChang
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Add Transaction</DialogTitle>
-          <DialogDescription>Create a new transaction.</DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="type">Type</Label>
-            <Select
-              value={type}
-              onValueChange={(value) => setType(value as 'income' | 'expense' | 'savings')}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="income">Income</SelectItem>
-                <SelectItem value="expense">Expense</SelectItem>
-                <SelectItem value="savings">Savings</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="category">Category</Label>
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="subCategory">SubCategory</Label>
-            <Select value={selectedSubCategory} onValueChange={setSelectedSubCategory}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select subcategory" />
-              </SelectTrigger>
-              <SelectContent>
-                {subCategories.map((subCategory) => (
-                  <SelectItem key={subCategory.id} value={subCategory.id}>
-                    {subCategory.name}
-                  </SelectItem>
-                ))}
-                <SelectItem value="other">Other</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label htmlFor="amount">Amount</Label>
-            <Input
-              id="amount"
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="Enter amount"
-              disabled={loading}
-            />
-          </div>
-          <div>
-            <Label htmlFor="note">Note</Label>
-            <Input
-              id="note"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Enter note"
-              disabled={loading}
-            />
-          </div>
-          {type === 'income' && (
-            <>
+      <DialogContent className="h-[700px]">
+        <Root className="h-full w-full overflow-hidden">
+          <ScrollAreaViewport className="h-full w-full p-4">
+            <DialogHeader>
+              <DialogTitle>Add Transaction</DialogTitle>
+              <DialogDescription>Create a new transaction.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
               <div>
-                <Label htmlFor="modeOfPayment">Mode of Payment</Label>
-                <Select value={modeOfPayment} onValueChange={setModeOfPayment}>
+                <Label htmlFor="type">Type</Label>
+                <Select
+                  value={type}
+                  onValueChange={(value) => setType(value as 'income' | 'expense' | 'savings')}
+                >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select payment mode" />
+                    <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="cash">Cash</SelectItem>
-                    <SelectItem value="fonepay">Fonepay</SelectItem>
-                    <SelectItem value="esewa">Esewa</SelectItem>
-                    <SelectItem value="credit">Credit</SelectItem>
+                    <SelectItem value="income">Income</SelectItem>
+                    <SelectItem value="expense">Expense</SelectItem>
+                    <SelectItem value="savings">Savings</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <Label htmlFor="advancePaid">Advance Paid</Label>
+                <Label htmlFor="category">Category</Label>
+                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.map((category) => (
+                      <SelectItem key={category.id} value={category.id}>
+                        {category.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="subCategory">SubCategory</Label>
+                <Select value={selectedSubCategory} onValueChange={setSelectedSubCategory}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select subcategory" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {subCategories.map((subCategory) => (
+                      <SelectItem key={subCategory.id} value={subCategory.id}>
+                        {subCategory.name}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="amount">Amount</Label>
                 <Input
-                  id="advancePaid"
+                  id="amount"
                   type="number"
-                  value={advancePaid}
-                  onChange={(e) => setAdvancePaid(e.target.value)}
-                  placeholder="Enter advance paid"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  placeholder="Enter amount"
                   disabled={loading}
                 />
               </div>
-            </>
-          )}
-          <div>
-            <Label htmlFor="date">Date</Label>
-            <Input
-              id="date"
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              disabled={loading}
-            />
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSave}
-              disabled={!amount || !selectedCategory || !date || loading}
-            >
-              {loading ? 'Adding...' : 'Add'}
-            </Button>
-          </div>
-        </div>
+              <div>
+                <Label htmlFor="note">Note</Label>
+                <Input
+                  id="note"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="Enter note"
+                  disabled={loading}
+                />
+              </div>
+              {type === 'income' && (
+                <>
+                  <div>
+                    <Label htmlFor="modeOfPayment">Mode of Payment</Label>
+                    <Select value={modeOfPayment} onValueChange={setModeOfPayment}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select payment mode" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cash">Cash</SelectItem>
+                        <SelectItem value="fonepay">Fonepay</SelectItem>
+                        <SelectItem value="esewa">Esewa</SelectItem>
+                        <SelectItem value="credit">Credit</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="advancePaid">Advance Paid</Label>
+                    <Input
+                      id="advancePaid"
+                      type="number"
+                      value={advancePaid}
+                      onChange={(e) => setAdvancePaid(e.target.value)}
+                      placeholder="Enter advance paid"
+                      disabled={loading}
+                    />
+                  </div>
+                </>
+              )}
+              <div>
+                <Label htmlFor="date">Date</Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  disabled={loading}
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSave}
+                  disabled={!amount || !selectedCategory || !date || loading}
+                >
+                  {loading ? 'Adding...' : 'Add'}
+                </Button>
+              </div>
+            </div>
+            <Scrollbar />
+          </ScrollAreaViewport>
+        </Root>
       </DialogContent>
     </Dialog>
   );

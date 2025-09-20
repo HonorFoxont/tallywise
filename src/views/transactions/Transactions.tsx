@@ -92,27 +92,43 @@ const Transactions: React.FC = () => {
     return () => unsubscribe();
   }, [user?.organizationId]);
 
-  // Fetch subcategories
   useEffect(() => {
-    if (!user?.organizationId || categoryFilter === 'all') {
+    if (!user?.organizationId) {
       setSubCategories([]);
       return;
     }
-    const q = query(
-      collection(
-        db,
-        `organizations/${user.organizationId}/categories/${categoryFilter}/subCategories`
-      )
-    );
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const subCategoriesData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as SubCategory[];
-      setSubCategories(subCategoriesData);
+
+    // Step 1: fetch all categories under the organization
+    const categoriesRef = collection(db, `organizations/${user.organizationId}/categories`);
+    const unsubscribeCategories = onSnapshot(categoriesRef, async (categorySnap) => {
+      const allSubCategories: SubCategory[] = [];
+
+      // Step 2: for each category, fetch its subcategories
+      const subUnsubscribers = await Promise.all(
+        categorySnap.docs.map(async (catDoc) => {
+          const subRef = collection(
+            db,
+            `organizations/${user.organizationId}/categories/${catDoc.id}/subCategories`
+          );
+
+          return onSnapshot(subRef, (subSnap) => {
+            subSnap.docs.forEach((subDoc) => {
+              allSubCategories.push({
+                id: subDoc.id,
+                ...subDoc.data(),
+              } as SubCategory);
+            });
+            setSubCategories([...allSubCategories]);
+          });
+        })
+      );
+
+      // Clean up subcategory listeners when categories change
+      return () => subUnsubscribers.forEach((unsub) => unsub());
     });
-    return () => unsubscribe();
-  }, [user?.organizationId, categoryFilter]);
+
+    return () => unsubscribeCategories();
+  }, [user?.organizationId]);
 
   // Fetch transactions
   useEffect(() => {
@@ -234,8 +250,8 @@ const Transactions: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex w-full gap-2">
-              <div className="flex w-1/2 justify-evenly gap-2">
+            <div className="flex w-full gap-2 sm:flex-col md:flex-row">
+              <div className="flex w-3/5 justify-evenly gap-2">
                 <div className="relative flex-shrink-0">
                   <Search className="absolute top-3 left-3 h-4 w-4 text-gray-400" />
                   <Input
@@ -247,7 +263,7 @@ const Transactions: React.FC = () => {
                 </div>
 
                 <Select value={typeFilter} onValueChange={setTypeFilter}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-1/3 flex-shrink-0">
                     <SelectValue placeholder="Transaction Type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -259,7 +275,7 @@ const Transactions: React.FC = () => {
                 </Select>
 
                 <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-1/3 flex-shrink-0">
                     <SelectValue placeholder="Category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -272,9 +288,9 @@ const Transactions: React.FC = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex w-1/2 justify-evenly gap-2">
+              <div className="flex w-2/5 gap-2">
                 <Select value={paymentFilter} onValueChange={setPaymentFilter}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-1/2 flex-shrink-0">
                     <SelectValue placeholder="Payment Mode" />
                   </SelectTrigger>
                   <SelectContent>
@@ -285,7 +301,7 @@ const Transactions: React.FC = () => {
                     <SelectItem value="credit">Credit</SelectItem>
                   </SelectContent>
                 </Select>
-                <div className="flex-shrink-0">
+                <div className="w-1/2 flex-shrink-0">
                   <DateRangePicker
                     onUpdate={(values) =>
                       setDateRangeFilter({
