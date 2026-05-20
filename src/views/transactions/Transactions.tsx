@@ -413,7 +413,7 @@ const Transactions: React.FC = () => {
         </Card>
         <Button
           size="lg"
-          className="absolute right-4 bottom-4 h-14 w-14 cursor-pointer rounded-full shadow-lg"
+          className="fixed right-4 bottom-4 h-14 w-14 cursor-pointer rounded-full shadow-lg"
           onClick={() => {
             setTransactionDialogOpen(true);
           }}
