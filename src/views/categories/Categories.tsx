@@ -23,11 +23,9 @@ import useCategories from './hooks/useCategories';
 const Categories = () => {
   const [transaction, setTransaction] = useState<TransactionType>(TransactionType.Income);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
-  const [dialog, setDialog] = useState({
-    edit: false,
-    delete: false,
-    add: false,
-  });
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const { categories, loading, authLoading } = useCategories(transaction);
 
   return (
@@ -60,7 +58,7 @@ const Categories = () => {
           <h1 className="text-bold text-2xl">Category:</h1>
           <Button
             onClick={() => {
-              setDialog((prev) => ({ ...prev, add: true }));
+              setAddDialogOpen(true);
             }}
             className="cursor-pointer"
           >
@@ -96,7 +94,7 @@ const Categories = () => {
                       className="cursor-pointer"
                       onClick={() => {
                         setSelectedCategory(category);
-                        setDialog((prev) => ({ ...prev, edit: true }));
+                        setEditDialogOpen(true);
                       }}
                     />
                   </TableCell>
@@ -105,7 +103,7 @@ const Categories = () => {
                       className="cursor-pointer"
                       onClick={() => {
                         setSelectedCategory(category);
-                        setDialog((prev) => ({ ...prev, delete: true }));
+                        setDeleteDialogOpen(true);
                       }}
                     />
                   </TableCell>
@@ -116,19 +114,16 @@ const Categories = () => {
         </Table>
       </Card>
       <EditCategoriesDialog
-        open={dialog.edit}
+        open={editDialogOpen}
         category={selectedCategory}
-        onOpenChange={(value) => setDialog((prev) => ({ ...prev, edit: value }))}
+        onOpenChange={setEditDialogOpen}
       />
       <DeleteCategoriesDialog
         category={selectedCategory}
-        open={dialog.delete}
-        onOpenChange={(value) => setDialog((prev) => ({ ...prev, delete: value }))}
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
       />
-      <AddCategoriesDialog
-        open={dialog.add}
-        onOpenChange={(value) => setDialog((prev) => ({ ...prev, add: value }))}
-      />
+      <AddCategoriesDialog open={addDialogOpen} onOpenChange={setAddDialogOpen} />
     </div>
   );
 };
