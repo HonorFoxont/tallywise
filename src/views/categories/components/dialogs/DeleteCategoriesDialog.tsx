@@ -12,12 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/firebase';
-
-interface Category {
-  id: string;
-  name: string;
-  type: 'income' | 'expense' | 'saving';
-}
+import { type Category } from '~/src/types';
 
 interface DeleteCategoryDialogProps {
   open: boolean; // Renamed for consistency with previous code

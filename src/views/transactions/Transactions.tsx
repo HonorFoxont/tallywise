@@ -26,14 +26,9 @@ import { db } from '@/lib/firebase';
 import TransactionDialog from '@/views/transactions/components/TransactionDialog';
 
 import { DateRangePicker } from '../../components/ui/date-range-picker/date-range-picker';
+import useCategories from '../categories/hooks/useCategories';
 import DeleteTransactionsDialog from './components/DeleteTransactionDialog';
 import EditTransactionsDialog from './components/EditTransactionDialog';
-
-interface Category {
-  id: string;
-  name: string;
-  type: 'income' | 'expense' | 'savings';
-}
 
 interface SubCategory {
   id: string;
@@ -58,10 +53,11 @@ interface Transaction {
 
 const Transactions: React.FC = () => {
   const { user } = useAuth();
+  const { categories } = useCategories(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
-  const [categories, setCategories] = useState<Category[]>([]);
+
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [transactionDialogOpen, setTransactionDialogOpen] = useState(false);
@@ -77,20 +73,6 @@ const Transactions: React.FC = () => {
     start: moment().startOf('day').toDate(),
     end: moment().endOf('day').toDate(),
   });
-
-  // Fetch categories
-  useEffect(() => {
-    if (!user?.organizationId) return;
-    const q = query(collection(db, `organizations/${user.organizationId}/categories`));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const categoriesData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Category[];
-      setCategories(categoriesData);
-    });
-    return () => unsubscribe();
-  }, [user?.organizationId]);
 
   useEffect(() => {
     if (!user?.organizationId) {
