@@ -48,8 +48,8 @@ const SubCategories: React.FC = () => {
 
   useEffect(() => {
     setSelected({
+      ...selected,
       categoryId: categories[0]?.id || '',
-      subCategory: null,
     });
   }, [categories]);
 
