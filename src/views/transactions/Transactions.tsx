@@ -1,5 +1,4 @@
 import { format } from 'date-fns';
-import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { EllipsisVertical, Filter, Plus, Search } from 'lucide-react';
 import moment from 'moment';
 import React, { useEffect, useState } from 'react';
@@ -7,6 +6,7 @@ import React, { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DateRangePicker } from '@/components/ui/date-range-picker/date-range-picker';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,45 +21,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useAuth } from '@/contexts/AuthContext';
-import { db } from '@/lib/firebase';
+import { type Transaction } from '@/types';
 import TransactionDialog from '@/views/transactions/components/TransactionDialog';
 
-import { DateRangePicker } from '../../components/ui/date-range-picker/date-range-picker';
 import useCategories from '../categories/hooks/useCategories';
+import useSubcategory from '../sub-categories/hooks/useSubcategory';
 import DeleteTransactionsDialog from './components/DeleteTransactionDialog';
 import EditTransactionsDialog from './components/EditTransactionDialog';
-
-interface SubCategory {
-  id: string;
-  name: string;
-}
-
-interface Transaction {
-  id: string;
-  userId: string;
-  categoryId: string;
-  subCategoryId: string | null;
-  amount: number;
-  type: 'income' | 'expense' | 'savings';
-  note: string;
-  modeOfPayment: string;
-  date: Date;
-  advancePaid: number;
-  remainingAmount: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
+import filterTransactions from './helper/filterTransaction';
+import formatCurrency from './helper/formatCurrency';
+import getTransactionTypeColor from './helper/getTransactionTypeColor';
+import useTransaction from './hooks/useTransacrtion';
 
 const Transactions: React.FC = () => {
-  const { user } = useAuth();
+  const { subCategories } = useSubcategory(null);
   const { categories } = useCategories(null);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
-  const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
-  const [loading, setLoading] = useState(true);
   const [transactionDialogOpen, setTransactionDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -74,96 +53,20 @@ const Transactions: React.FC = () => {
     end: moment().endOf('day').toDate(),
   });
 
-  useEffect(() => {
-    if (!user?.organizationId) {
-      setSubCategories([]);
-      return;
-    }
-
-    // Step 1: fetch all categories under the organization
-    const categoriesRef = collection(db, `organizations/${user.organizationId}/categories`);
-    const unsubscribeCategories = onSnapshot(categoriesRef, async (categorySnap) => {
-      const allSubCategories: SubCategory[] = [];
-
-      // Step 2: for each category, fetch its subcategories
-      const subUnsubscribers = await Promise.all(
-        categorySnap.docs.map(async (catDoc) => {
-          const subRef = collection(
-            db,
-            `organizations/${user.organizationId}/categories/${catDoc.id}/subCategories`
-          );
-
-          return onSnapshot(subRef, (subSnap) => {
-            subSnap.docs.forEach((subDoc) => {
-              allSubCategories.push({
-                id: subDoc.id,
-                ...subDoc.data(),
-              } as SubCategory);
-            });
-            setSubCategories([...allSubCategories]);
-          });
-        })
-      );
-
-      // Clean up subcategory listeners when categories change
-      return () => subUnsubscribers.forEach((unsub) => unsub());
-    });
-
-    return () => unsubscribeCategories();
-  }, [user?.organizationId]);
-
   // Fetch transactions
-  useEffect(() => {
-    if (!user?.organizationId) return;
-    const transactionsQuery = query(
-      collection(db, `organizations/${user.organizationId}/transactions`),
-      orderBy('createdAt', 'desc')
-    );
-
-    const unsubscribe = onSnapshot(transactionsQuery, (snapshot) => {
-      const transactionsData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-        date: doc.data().date?.toDate(),
-        createdAt: doc.data().createdAt?.toDate(),
-        updatedAt: doc.data().updatedAt?.toDate(),
-      })) as Transaction[];
-      setTransactions(transactionsData);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [user?.organizationId]);
+  const { transactions, loading } = useTransaction();
 
   // Apply filters
   useEffect(() => {
-    let filtered = transactions;
-
-    if (searchTerm) {
-      filtered = filtered.filter((t) => {
-        const categoryName = categories.find((c) => c.id === t.categoryId)?.name || '';
-        const subCategoryName = subCategories.find((s) => s.id === t.subCategoryId)?.name || '';
-        return (
-          t.note.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          categoryName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          subCategoryName.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-      });
-    }
-
-    if (typeFilter !== 'all') {
-      filtered = filtered.filter((t) => t.type === typeFilter);
-    }
-
-    if (categoryFilter !== 'all') {
-      filtered = filtered.filter((t) => t.categoryId === categoryFilter);
-    }
-
-    if (paymentFilter !== 'all') {
-      filtered = filtered.filter((t) => t.modeOfPayment === paymentFilter);
-    }
-    filtered = filtered.filter(
-      (t) => t.createdAt > dateRangeFilter.start && t.createdAt < dateRangeFilter.end
+    const filtered = filterTransactions(
+      searchTerm,
+      typeFilter,
+      categoryFilter,
+      paymentFilter,
+      dateRangeFilter,
+      transactions,
+      categories,
+      subCategories
     );
     setFilteredTransactions(filtered);
   }, [
@@ -176,29 +79,6 @@ const Transactions: React.FC = () => {
     paymentFilter,
     dateRangeFilter,
   ]);
-
-  const getTransactionTypeColor = (type: string) => {
-    switch (type) {
-      case 'income':
-        return 'bg-green-100 text-green-800';
-      case 'expense':
-        return 'bg-red-100 text-red-800';
-      case 'savings':
-        return 'bg-blue-100 text-blue-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'NPR',
-      minimumFractionDigits: 0,
-    })
-      .format(amount)
-      .replace('NPR', 'Rs ');
-  };
 
   const clearFilters = () => {
     setSearchTerm('');
