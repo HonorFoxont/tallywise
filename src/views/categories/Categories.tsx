@@ -1,7 +1,5 @@
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { SquarePen, Trash2 } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { toast } from 'react-toastify';
+import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -15,67 +13,20 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { useAuth } from '@/contexts/AuthContext';
-import { db } from '@/lib/firebase';
+import { type Category, TransactionType } from '@/types';
 import AddCategoriesDialog from '@/views/categories/components/dialogs/AddCategoriesDialog';
 import DeleteCategoriesDialog from '@/views/categories/components/dialogs/DeleteCategoriesDialog';
 import EditCategoriesDialog from '@/views/categories/components/dialogs/EditCategoriesDialog';
 
-interface Category {
-  id: string;
-  name: string;
-  type: 'income' | 'expense' | 'saving';
-  createdAt: Date;
-  updatedAt: Date;
-}
+import useCategories from './hooks/useCategories';
 
 const Categories = () => {
-  const { user, loading: authLoading } = useAuth();
-  const [transaction, setTransaction] = useState<'income' | 'expense' | 'saving'>('income');
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [transaction, setTransaction] = useState<TransactionType>(TransactionType.Income);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [addDialogOpen, setAddDialogOpen] = useState(false);
-
-  // Fetch categories
-  useEffect(() => {
-    const fetchCategories = () => {
-      if (!user?.organizationId || authLoading) {
-        if (!authLoading && !user?.organizationId) {
-          toast.error('No organization assigned to user');
-        }
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-      const categoriesRef = collection(db, `organizations/${user.organizationId}/categories`);
-      const q = query(categoriesRef, where('type', '==', transaction));
-
-      const unsubscribe = onSnapshot(
-        q,
-        (querySnapshot) => {
-          const fetchedCategories = querySnapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-            createdAt: doc.data().createdAt.toDate(),
-            updatedAt: doc.data().updatedAt.toDate(),
-          })) as Category[];
-          setCategories(fetchedCategories);
-          setLoading(false);
-        },
-        (error) => {
-          toast.error('Error fetching categories');
-          console.error('Error fetching categories', error);
-        }
-      );
-      return () => unsubscribe();
-    };
-
-    fetchCategories();
-  }, [user?.organizationId, transaction, authLoading]);
+  const { categories, loading, authLoading } = useCategories(transaction);
 
   return (
     <div className="space-y-6 p-6">
@@ -87,8 +38,8 @@ const Categories = () => {
         <ToggleGroup
           type="single"
           className="w-full"
-          defaultValue="income"
-          onValueChange={(value) => setTransaction(value as 'income' | 'expense' | 'saving')}
+          defaultValue={TransactionType.Income}
+          onValueChange={(value) => setTransaction(value as TransactionType)}
         >
           <ToggleGroupItem value="income" aria-label="Toggle Income">
             Income

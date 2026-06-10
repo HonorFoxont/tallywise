@@ -19,7 +19,6 @@
     "noUncheckedIndexedAccess": true,
     "noImplicitAny": false,
     "strictPropertyInitialization": false,
-    "baseUrl": ".",
     "paths": {
       "~/*": ["./*"],
       "@/*": ["./src/*"]
