@@ -1,4 +1,4 @@
-import { format } from 'date-fns';
+import { endOfDay, format, startOfDay } from 'date-fns';
 import { collection, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { Pencil, PiggyBank, Plus, Trash2, TrendingDown, TrendingUp } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -69,8 +69,8 @@ const Dashboard = () => {
   const [selectedType, setSelectedType] = useState<'income' | 'expense' | 'savings' | 'all'>('all');
   const [pieChartType, setPieChartType] = useState<'income' | 'expense' | 'savings'>('income');
   const [dateRangeFilter, setDateRangeFilter] = useState({
-    start: new Date(new Date().setDate(new Date().getDate() - 7)), // Last 7 days
-    end: new Date(),
+    start: startOfDay(new Date()),
+    end: endOfDay(new Date()),
   });
 
   // Check if user is admin or superadmin

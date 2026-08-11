@@ -1,7 +1,7 @@
 import { format } from 'date-fns';
 import { EllipsisVertical, Filter, Plus, Search } from 'lucide-react';
 import moment from 'moment';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -13,14 +13,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import FormCombobox from '@/components/ui/form-combobox';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { type Transaction } from '@/types';
 import TransactionDialog from '@/views/transactions/components/TransactionDialog';
 
@@ -31,6 +25,11 @@ import EditTransactionsDialog from './components/EditTransactionDialog';
 import filterTransactions from './helper/filterTransaction';
 import formatCurrency from './helper/formatCurrency';
 import getTransactionTypeColor from './helper/getTransactionTypeColor';
+import {
+  PAYMENT_MODE_OPTIONS,
+  toNamedOptions,
+  TRANSACTION_TYPE_OPTIONS,
+} from './helper/transactionOptions';
 import useTransaction from './hooks/useTransacrtion';
 
 const Transactions: React.FC = () => {
@@ -43,15 +42,17 @@ const Transactions: React.FC = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  // Filter states
+  // Filter states. `null` means the filter is not applied.
   const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState('all');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [paymentFilter, setPaymentFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState<string | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [paymentFilter, setPaymentFilter] = useState<string | null>(null);
   const [dateRangeFilter, setDateRangeFilter] = useState({
     start: moment().startOf('day').toDate(),
     end: moment().endOf('day').toDate(),
   });
+
+  const categoryOptions = useMemo(() => toNamedOptions(categories), [categories]);
 
   // Fetch transactions
   const { transactions, loading } = useTransaction();
@@ -82,9 +83,9 @@ const Transactions: React.FC = () => {
 
   const clearFilters = () => {
     setSearchTerm('');
-    setTypeFilter('all');
-    setCategoryFilter('all');
-    setPaymentFilter('all');
+    setTypeFilter(null);
+    setCategoryFilter(null);
+    setPaymentFilter(null);
   };
 
   if (loading) {
@@ -124,45 +125,34 @@ const Transactions: React.FC = () => {
                   />
                 </div>
 
-                <Select value={typeFilter} onValueChange={setTypeFilter}>
-                  <SelectTrigger className="w-1/3 flex-shrink-0">
-                    <SelectValue placeholder="Transaction Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="income">Income</SelectItem>
-                    <SelectItem value="expense">Expense</SelectItem>
-                    <SelectItem value="savings">Savings</SelectItem>
-                  </SelectContent>
-                </Select>
+                <FormCombobox
+                  options={TRANSACTION_TYPE_OPTIONS}
+                  value={typeFilter}
+                  onChange={setTypeFilter}
+                  placeholder="All Types"
+                  clearable
+                  className="w-1/3 flex-shrink-0"
+                />
 
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                  <SelectTrigger className="w-1/3 flex-shrink-0">
-                    <SelectValue placeholder="Category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <FormCombobox
+                  options={categoryOptions}
+                  value={categoryFilter}
+                  onChange={setCategoryFilter}
+                  placeholder="All Categories"
+                  emptyMessage="No categories found."
+                  clearable
+                  className="w-1/3 flex-shrink-0"
+                />
               </div>
               <div className="flex w-2/5 gap-2">
-                <Select value={paymentFilter} onValueChange={setPaymentFilter}>
-                  <SelectTrigger className="w-1/2 flex-shrink-0">
-                    <SelectValue placeholder="Payment Mode" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Payments</SelectItem>
-                    <SelectItem value="cash">Cash</SelectItem>
-                    <SelectItem value="fonepay">Fonepay</SelectItem>
-                    <SelectItem value="esewa">Esewa</SelectItem>
-                    <SelectItem value="credit">Credit</SelectItem>
-                  </SelectContent>
-                </Select>
+                <FormCombobox
+                  options={PAYMENT_MODE_OPTIONS}
+                  value={paymentFilter}
+                  onChange={setPaymentFilter}
+                  placeholder="All Payments"
+                  clearable
+                  className="w-1/2 flex-shrink-0"
+                />
                 <div className="w-1/2 flex-shrink-0">
                   <DateRangePicker
                     onUpdate={(values) =>

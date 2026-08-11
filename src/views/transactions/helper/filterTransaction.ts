@@ -1,14 +1,19 @@
-import { type Transaction } from '~/src/types';
+import { type Category, type SubCategory, type Transaction } from '~/src/types';
+
+type DateRangeFilter = {
+  start: Date;
+  end: Date;
+};
 
 export default function filterTransactions(
-  searchTerm,
-  typeFilter,
-  categoryFilter,
-  paymentFilter,
-  dateRangeFilter,
-  transactions,
-  categories,
-  subCategories
+  searchTerm: string,
+  typeFilter: string | null,
+  categoryFilter: string | null,
+  paymentFilter: string | null,
+  dateRangeFilter: DateRangeFilter,
+  transactions: Transaction[],
+  categories: Category[],
+  subCategories: SubCategory[]
 ) {
   let filtered: Transaction[] = transactions;
 
@@ -24,15 +29,15 @@ export default function filterTransactions(
     });
   }
 
-  if (typeFilter !== 'all') {
+  if (typeFilter) {
     filtered = filtered.filter((t) => t.type === typeFilter);
   }
 
-  if (categoryFilter !== 'all') {
+  if (categoryFilter) {
     filtered = filtered.filter((t) => t.categoryId === categoryFilter);
   }
 
-  if (paymentFilter !== 'all') {
+  if (paymentFilter) {
     filtered = filtered.filter((t) => t.modeOfPayment === paymentFilter);
   }
   filtered = filtered.filter(

@@ -1,6 +1,6 @@
 import { format } from 'date-fns';
 import { collection, doc, onSnapshot, query, updateDoc, where } from 'firebase/firestore';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 
 import { Button } from '@/components/ui/button';
@@ -11,17 +11,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import FormCombobox from '@/components/ui/form-combobox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/firebase';
+
+import {
+  PAYMENT_MODE_OPTIONS,
+  toNamedOptions,
+  TRANSACTION_TYPE_OPTIONS,
+} from '../helper/transactionOptions';
 
 interface Category {
   id: string;
@@ -59,11 +59,12 @@ const EditTransactionDialog: React.FC<EditTransactionDialogProps> = ({
   transaction,
 }) => {
   const { user } = useAuth();
+  const contentRef = useRef<HTMLDivElement | null>(null);
   const [type, setType] = useState<'income' | 'expense' | 'savings'>('income');
   const [categories, setCategories] = useState<Category[]>([]);
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
-  const [selectedSubCategory, setSelectedSubCategory] = useState<string | undefined>('none');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
   const [modeOfPayment, setModeOfPayment] = useState('cash');
@@ -71,12 +72,15 @@ const EditTransactionDialog: React.FC<EditTransactionDialogProps> = ({
   const [advancePaid, setAdvancePaid] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const categoryOptions = useMemo(() => toNamedOptions(categories), [categories]);
+  const subCategoryOptions = useMemo(() => toNamedOptions(subCategories), [subCategories]);
+
   // Initialize form with transaction data
   useEffect(() => {
     if (transaction) {
       setType(transaction.type);
       setSelectedCategory(transaction.categoryId);
-      setSelectedSubCategory(transaction.subCategoryId || 'none');
+      setSelectedSubCategory(transaction.subCategoryId);
       setAmount(transaction.amount.toString());
       setNote(transaction.note || '');
       setModeOfPayment(transaction.modeOfPayment || 'cash');
@@ -98,9 +102,11 @@ const EditTransactionDialog: React.FC<EditTransactionDialogProps> = ({
         ...doc.data(),
       })) as Category[];
       setCategories(fetchedCategories);
-      if (!selectedCategory || !fetchedCategories.some((cat) => cat.id === selectedCategory)) {
-        setSelectedCategory(fetchedCategories[0]?.id || undefined);
-      }
+      setSelectedCategory((current) =>
+        current && fetchedCategories.some((cat) => cat.id === current)
+          ? current
+          : (fetchedCategories[0]?.id ?? null)
+      );
     });
     return () => unsubscribe();
   }, [user?.organizationId, type]);
@@ -109,7 +115,7 @@ const EditTransactionDialog: React.FC<EditTransactionDialogProps> = ({
   useEffect(() => {
     if (!user?.organizationId || !selectedCategory) {
       setSubCategories([]);
-      setSelectedSubCategory('none');
+      setSelectedSubCategory(null);
       return;
     }
     const q = query(
@@ -124,12 +130,11 @@ const EditTransactionDialog: React.FC<EditTransactionDialogProps> = ({
         ...doc.data(),
       })) as SubCategory[];
       setSubCategories(fetchedSubCategories);
-      if (
-        !selectedSubCategory ||
-        !fetchedSubCategories.some((sub) => sub.id === selectedSubCategory)
-      ) {
-        setSelectedSubCategory(fetchedSubCategories[0]?.id || 'none');
-      }
+      setSelectedSubCategory((current) =>
+        current && fetchedSubCategories.some((sub) => sub.id === current)
+          ? current
+          : (fetchedSubCategories[0]?.id ?? null)
+      );
     });
     return () => unsubscribe();
   }, [user?.organizationId, selectedCategory]);
@@ -147,7 +152,7 @@ const EditTransactionDialog: React.FC<EditTransactionDialogProps> = ({
         doc(db, `organizations/${user.organizationId}/transactions/${transaction.id}`),
         {
           categoryId: selectedCategory,
-          subCategoryId: selectedSubCategory === 'none' ? null : selectedSubCategory,
+          subCategoryId: selectedSubCategory,
           amount: amountNum,
           type,
           note: note || '',
@@ -164,8 +169,8 @@ const EditTransactionDialog: React.FC<EditTransactionDialogProps> = ({
       setModeOfPayment('cash');
       setDate('');
       setAdvancePaid('');
-      setSelectedCategory(undefined);
-      setSelectedSubCategory('none');
+      setSelectedCategory(null);
+      setSelectedSubCategory(null);
       onOpenChange(false);
     } catch (error) {
       console.error('Error updating transaction:', error);
@@ -177,7 +182,7 @@ const EditTransactionDialog: React.FC<EditTransactionDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent ref={contentRef}>
         <DialogHeader>
           <DialogTitle>Edit Transaction</DialogTitle>
           <DialogDescription>Update an existing transaction.</DialogDescription>
@@ -185,50 +190,43 @@ const EditTransactionDialog: React.FC<EditTransactionDialogProps> = ({
         <div className="space-y-4">
           <div>
             <Label htmlFor="type">Type</Label>
-            <Select
+            <FormCombobox
+              id="type"
+              options={TRANSACTION_TYPE_OPTIONS}
               value={type}
-              onValueChange={(value) => setType(value as 'income' | 'expense' | 'savings')}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="income">Income</SelectItem>
-                <SelectItem value="expense">Expense</SelectItem>
-                <SelectItem value="savings">Savings</SelectItem>
-              </SelectContent>
-            </Select>
+              onChange={(value) => setType((value ?? 'income') as typeof type)}
+              placeholder="Select type"
+              disabled={loading}
+              portalContainer={contentRef}
+            />
           </div>
           <div>
             <Label htmlFor="category">Category</Label>
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <FormCombobox
+              id="category"
+              options={categoryOptions}
+              value={selectedCategory}
+              onChange={setSelectedCategory}
+              placeholder="Select category"
+              emptyMessage="No categories found."
+              disabled={loading}
+              clearable
+              portalContainer={contentRef}
+            />
           </div>
           <div>
             <Label htmlFor="subCategory">SubCategory</Label>
-            <Select value={selectedSubCategory} onValueChange={setSelectedSubCategory}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select subcategory" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">None</SelectItem>
-                {subCategories.map((subCategory) => (
-                  <SelectItem key={subCategory.id} value={subCategory.id}>
-                    {subCategory.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <FormCombobox
+              id="subCategory"
+              options={subCategoryOptions}
+              value={selectedSubCategory}
+              onChange={setSelectedSubCategory}
+              placeholder="Select subcategory"
+              emptyMessage="No subcategories found."
+              disabled={loading || !selectedCategory}
+              clearable
+              portalContainer={contentRef}
+            />
           </div>
           <div>
             <Label htmlFor="amount">Amount</Label>
@@ -255,17 +253,15 @@ const EditTransactionDialog: React.FC<EditTransactionDialogProps> = ({
             <>
               <div>
                 <Label htmlFor="modeOfPayment">Mode of Payment</Label>
-                <Select value={modeOfPayment} onValueChange={setModeOfPayment}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select payment mode" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cash">Cash</SelectItem>
-                    <SelectItem value="fonepay">Fonepay</SelectItem>
-                    <SelectItem value="esewa">Esewa</SelectItem>
-                    <SelectItem value="credit">Credit</SelectItem>
-                  </SelectContent>
-                </Select>
+                <FormCombobox
+                  id="modeOfPayment"
+                  options={PAYMENT_MODE_OPTIONS}
+                  value={modeOfPayment}
+                  onChange={(value) => setModeOfPayment(value ?? 'cash')}
+                  placeholder="Select payment mode"
+                  disabled={loading}
+                  portalContainer={contentRef}
+                />
               </div>
               <div>
                 <Label htmlFor="advancePaid">Advance Paid</Label>

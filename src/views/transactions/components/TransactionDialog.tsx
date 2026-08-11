@@ -1,6 +1,6 @@
 import { Root, ScrollAreaViewport, Scrollbar } from '@radix-ui/react-scroll-area';
 import { addDoc, collection, onSnapshot, query, where } from 'firebase/firestore';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 
 import { Button } from '@/components/ui/button';
@@ -11,17 +11,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import FormCombobox from '@/components/ui/form-combobox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/firebase';
+
+import {
+  PAYMENT_MODE_OPTIONS,
+  toNamedOptions,
+  TRANSACTION_TYPE_OPTIONS,
+} from '../helper/transactionOptions';
 
 interface Category {
   id: string;
@@ -41,17 +41,21 @@ interface TransactionDialogProps {
 
 const TransactionDialog: React.FC<TransactionDialogProps> = ({ open, onOpenChange }) => {
   const { user } = useAuth();
+  const contentRef = useRef<HTMLDivElement | null>(null);
   const [type, setType] = useState<'income' | 'expense' | 'savings'>('income');
   const [categories, setCategories] = useState<Category[]>([]);
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
-  const [selectedSubCategory, setSelectedSubCategory] = useState<string | undefined>('other');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
   const [modeOfPayment, setModeOfPayment] = useState<string>('cash');
   const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]!);
   const [advancePaid, setAdvancePaid] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const categoryOptions = useMemo(() => toNamedOptions(categories), [categories]);
+  const subCategoryOptions = useMemo(() => toNamedOptions(subCategories), [subCategories]);
 
   // Fetch categories
   useEffect(() => {
@@ -66,7 +70,7 @@ const TransactionDialog: React.FC<TransactionDialogProps> = ({ open, onOpenChang
         ...doc.data(),
       })) as Category[];
       setCategories(fetchedCategories);
-      setSelectedCategory(fetchedCategories[0]?.id || undefined);
+      setSelectedCategory(fetchedCategories[0]?.id ?? null);
     });
     return () => unsubscribe();
   }, [user?.organizationId, type]);
@@ -75,7 +79,7 @@ const TransactionDialog: React.FC<TransactionDialogProps> = ({ open, onOpenChang
   useEffect(() => {
     if (!user?.organizationId || !selectedCategory) {
       setSubCategories([]);
-      setSelectedSubCategory('other');
+      setSelectedSubCategory(null);
       return;
     }
     const q = query(
@@ -90,7 +94,7 @@ const TransactionDialog: React.FC<TransactionDialogProps> = ({ open, onOpenChang
         ...doc.data(),
       })) as SubCategory[];
       setSubCategories(fetchedSubCategories);
-      setSelectedSubCategory(fetchedSubCategories[0]?.id || 'other');
+      setSelectedSubCategory(fetchedSubCategories[0]?.id ?? null);
     });
     return () => unsubscribe();
   }, [user?.organizationId, selectedCategory]);
@@ -107,7 +111,7 @@ const TransactionDialog: React.FC<TransactionDialogProps> = ({ open, onOpenChang
       await addDoc(collection(db, `organizations/${user.organizationId}/transactions`), {
         userId: user.id,
         categoryId: selectedCategory,
-        subCategoryId: selectedSubCategory === 'other' ? null : selectedSubCategory,
+        subCategoryId: selectedSubCategory,
         amount: amountNum,
         type,
         note: note || '',
@@ -124,8 +128,8 @@ const TransactionDialog: React.FC<TransactionDialogProps> = ({ open, onOpenChang
       setModeOfPayment('cash');
       setDate(new Date().toISOString().split('T')[0]!);
       setAdvancePaid('');
-      setSelectedCategory(undefined);
-      setSelectedSubCategory('other');
+      setSelectedCategory(null);
+      setSelectedSubCategory(null);
       onOpenChange(false);
     } catch (error) {
       console.error('Error adding transaction:', error);
@@ -137,7 +141,7 @@ const TransactionDialog: React.FC<TransactionDialogProps> = ({ open, onOpenChang
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="h-[700px]">
+      <DialogContent className="h-[700px]" ref={contentRef}>
         <Root className="h-full w-full overflow-hidden">
           <ScrollAreaViewport className="h-full w-full p-4">
             <DialogHeader>
@@ -147,50 +151,43 @@ const TransactionDialog: React.FC<TransactionDialogProps> = ({ open, onOpenChang
             <div className="space-y-4">
               <div>
                 <Label htmlFor="type">Type</Label>
-                <Select
+                <FormCombobox
+                  id="type"
+                  options={TRANSACTION_TYPE_OPTIONS}
                   value={type}
-                  onValueChange={(value) => setType(value as 'income' | 'expense' | 'savings')}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="income">Income</SelectItem>
-                    <SelectItem value="expense">Expense</SelectItem>
-                    <SelectItem value="savings">Savings</SelectItem>
-                  </SelectContent>
-                </Select>
+                  onChange={(value) => setType((value ?? 'income') as typeof type)}
+                  placeholder="Select type"
+                  disabled={loading}
+                  portalContainer={contentRef}
+                />
               </div>
               <div>
                 <Label htmlFor="category">Category</Label>
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <FormCombobox
+                  id="category"
+                  options={categoryOptions}
+                  value={selectedCategory}
+                  onChange={setSelectedCategory}
+                  placeholder="Select category"
+                  emptyMessage="No categories found."
+                  disabled={loading}
+                  clearable
+                  portalContainer={contentRef}
+                />
               </div>
               <div>
                 <Label htmlFor="subCategory">SubCategory</Label>
-                <Select value={selectedSubCategory} onValueChange={setSelectedSubCategory}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select subcategory" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {subCategories.map((subCategory) => (
-                      <SelectItem key={subCategory.id} value={subCategory.id}>
-                        {subCategory.name}
-                      </SelectItem>
-                    ))}
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
+                <FormCombobox
+                  id="subCategory"
+                  options={subCategoryOptions}
+                  value={selectedSubCategory}
+                  onChange={setSelectedSubCategory}
+                  placeholder="Select subcategory"
+                  emptyMessage="No subcategories found."
+                  disabled={loading || !selectedCategory}
+                  clearable
+                  portalContainer={contentRef}
+                />
               </div>
               <div>
                 <Label htmlFor="amount">Amount</Label>
@@ -217,17 +214,15 @@ const TransactionDialog: React.FC<TransactionDialogProps> = ({ open, onOpenChang
                 <>
                   <div>
                     <Label htmlFor="modeOfPayment">Mode of Payment</Label>
-                    <Select value={modeOfPayment} onValueChange={setModeOfPayment}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select payment mode" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="cash">Cash</SelectItem>
-                        <SelectItem value="fonepay">Fonepay</SelectItem>
-                        <SelectItem value="esewa">Esewa</SelectItem>
-                        <SelectItem value="credit">Credit</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <FormCombobox
+                      id="modeOfPayment"
+                      options={PAYMENT_MODE_OPTIONS}
+                      value={modeOfPayment}
+                      onChange={(value) => setModeOfPayment(value ?? 'cash')}
+                      placeholder="Select payment mode"
+                      disabled={loading}
+                      portalContainer={contentRef}
+                    />
                   </div>
                   <div>
                     <Label htmlFor="advancePaid">Advance Paid</Label>
