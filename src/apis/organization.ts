@@ -20,17 +20,14 @@ type EditOrganizationParams = {
 // 🔹 Hook for subscribing to organizations in React components
 export function useOrganizations() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
-
   useEffect(() => {
     const q = query(collection(db, 'organizations'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const fetched = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }) as Organization);
       setOrganizations(fetched);
     });
-
     return () => unsubscribe();
   }, []);
-
   return organizations;
 }
 

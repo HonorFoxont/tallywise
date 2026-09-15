@@ -18,7 +18,7 @@ import { db } from '@/lib/firebase';
 interface AddSubCategoryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  categoryId: string | undefined;
+  categoryId: string;
 }
 
 const AddSubCategoryDialog: React.FC<AddSubCategoryDialogProps> = ({

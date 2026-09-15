@@ -1,5 +1,18 @@
 export * from './users';
 
+export enum TransactionType {
+  Income = 'income',
+  Expense = 'expense',
+  Savings = 'savings',
+}
+
+export enum modeOfPayment {
+  Cash = 'cash',
+  Fonepay = 'fonepay',
+  Esewa = 'esewa',
+  Credit = 'credit',
+}
+
 export interface Organization {
   id: string;
   name: string;
@@ -8,23 +21,21 @@ export interface Organization {
   updatedAt: string;
 }
 
-export interface Transaction {
+export type Transaction = {
   id: string;
-  createdBy: string;
-  date: Date;
-  transactionType: 'income' | 'expense' | 'savings';
-  category: string;
-  subCategory: string;
-  note: string;
-  amountTotal: number;
+  userId: string;
+  categoryId: string;
+  subCategoryId: string;
+  amount: number;
   advancePaid: number;
   remainingAmount: number;
-  modeOfPayment: 'cash' | 'fonepay' | 'esewa' | 'credit';
-  organizationId: string;
-  editHistory: EditHistory[];
+  type: TransactionType;
+  modeOfPayment: modeOfPayment;
+  note: string;
+  date: Date;
   createdAt: Date;
   updatedAt: Date;
-}
+};
 
 export interface EditHistory {
   editedBy: string;
@@ -36,14 +47,14 @@ export interface EditHistory {
 export interface Category {
   id: string;
   name: string;
-  organizationId: string;
+  type: TransactionType;
   createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface SubCategory {
   id: string;
   name: string;
-  categoryId: string;
-  organizationId: string;
   createdAt: Date;
+  updatedAt: Date;
 }
