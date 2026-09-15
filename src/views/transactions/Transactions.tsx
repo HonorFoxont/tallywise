@@ -1,169 +1,73 @@
 import { format } from 'date-fns';
-import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { EllipsisVertical, Filter, Plus, Search } from 'lucide-react';
 import moment from 'moment';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { DateRangePicker } from '@/components/ui/date-range-picker/date-range-picker';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import FormCombobox from '@/components/ui/form-combobox';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { useAuth } from '@/contexts/AuthContext';
-import { db } from '@/lib/firebase';
+import { type Transaction } from '@/types';
 import TransactionDialog from '@/views/transactions/components/TransactionDialog';
 
-import { DateRangePicker } from '../../components/ui/date-range-picker/date-range-picker';
 import useCategories from '../categories/hooks/useCategories';
+import useSubcategory from '../sub-categories/hooks/useSubcategory';
 import DeleteTransactionsDialog from './components/DeleteTransactionDialog';
 import EditTransactionsDialog from './components/EditTransactionDialog';
-
-interface SubCategory {
-  id: string;
-  name: string;
-}
-
-interface Transaction {
-  id: string;
-  userId: string;
-  categoryId: string;
-  subCategoryId: string | null;
-  amount: number;
-  type: 'income' | 'expense' | 'savings';
-  note: string;
-  modeOfPayment: string;
-  date: Date;
-  advancePaid: number;
-  remainingAmount: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
+import filterTransactions from './helper/filterTransaction';
+import formatCurrency from './helper/formatCurrency';
+import getTransactionTypeColor from './helper/getTransactionTypeColor';
+import {
+  PAYMENT_MODE_OPTIONS,
+  toNamedOptions,
+  TRANSACTION_TYPE_OPTIONS,
+} from './helper/transactionOptions';
+import useTransaction from './hooks/useTransacrtion';
 
 const Transactions: React.FC = () => {
-  const { user } = useAuth();
+  const { subCategories } = useSubcategory(null);
   const { categories } = useCategories(null);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
-  const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
-  const [loading, setLoading] = useState(true);
   const [transactionDialogOpen, setTransactionDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  // Filter states
+  // Filter states. `null` means the filter is not applied.
   const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState('all');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [paymentFilter, setPaymentFilter] = useState('all');
+  const [typeFilter, setTypeFilter] = useState<string | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [paymentFilter, setPaymentFilter] = useState<string | null>(null);
   const [dateRangeFilter, setDateRangeFilter] = useState({
     start: moment().startOf('day').toDate(),
     end: moment().endOf('day').toDate(),
   });
 
-  useEffect(() => {
-    if (!user?.organizationId) {
-      setSubCategories([]);
-      return;
-    }
-
-    // Step 1: fetch all categories under the organization
-    const categoriesRef = collection(db, `organizations/${user.organizationId}/categories`);
-    const unsubscribeCategories = onSnapshot(categoriesRef, async (categorySnap) => {
-      const allSubCategories: SubCategory[] = [];
-
-      // Step 2: for each category, fetch its subcategories
-      const subUnsubscribers = await Promise.all(
-        categorySnap.docs.map(async (catDoc) => {
-          const subRef = collection(
-            db,
-            `organizations/${user.organizationId}/categories/${catDoc.id}/subCategories`
-          );
-
-          return onSnapshot(subRef, (subSnap) => {
-            subSnap.docs.forEach((subDoc) => {
-              allSubCategories.push({
-                id: subDoc.id,
-                ...subDoc.data(),
-              } as SubCategory);
-            });
-            setSubCategories([...allSubCategories]);
-          });
-        })
-      );
-
-      // Clean up subcategory listeners when categories change
-      return () => subUnsubscribers.forEach((unsub) => unsub());
-    });
-
-    return () => unsubscribeCategories();
-  }, [user?.organizationId]);
+  const categoryOptions = useMemo(() => toNamedOptions(categories), [categories]);
 
   // Fetch transactions
-  useEffect(() => {
-    if (!user?.organizationId) return;
-    const transactionsQuery = query(
-      collection(db, `organizations/${user.organizationId}/transactions`),
-      orderBy('createdAt', 'desc')
-    );
-
-    const unsubscribe = onSnapshot(transactionsQuery, (snapshot) => {
-      const transactionsData = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-        date: doc.data().date?.toDate(),
-        createdAt: doc.data().createdAt?.toDate(),
-        updatedAt: doc.data().updatedAt?.toDate(),
-      })) as Transaction[];
-      setTransactions(transactionsData);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [user?.organizationId]);
+  const { transactions, loading } = useTransaction();
 
   // Apply filters
   useEffect(() => {
-    let filtered = transactions;
-
-    if (searchTerm) {
-      filtered = filtered.filter((t) => {
-        const categoryName = categories.find((c) => c.id === t.categoryId)?.name || '';
-        const subCategoryName = subCategories.find((s) => s.id === t.subCategoryId)?.name || '';
-        return (
-          t.note.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          categoryName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          subCategoryName.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-      });
-    }
-
-    if (typeFilter !== 'all') {
-      filtered = filtered.filter((t) => t.type === typeFilter);
-    }
-
-    if (categoryFilter !== 'all') {
-      filtered = filtered.filter((t) => t.categoryId === categoryFilter);
-    }
-
-    if (paymentFilter !== 'all') {
-      filtered = filtered.filter((t) => t.modeOfPayment === paymentFilter);
-    }
-    filtered = filtered.filter(
-      (t) => t.createdAt > dateRangeFilter.start && t.createdAt < dateRangeFilter.end
+    const filtered = filterTransactions(
+      searchTerm,
+      typeFilter,
+      categoryFilter,
+      paymentFilter,
+      dateRangeFilter,
+      transactions,
+      categories,
+      subCategories
     );
     setFilteredTransactions(filtered);
   }, [
@@ -177,34 +81,11 @@ const Transactions: React.FC = () => {
     dateRangeFilter,
   ]);
 
-  const getTransactionTypeColor = (type: string) => {
-    switch (type) {
-      case 'income':
-        return 'bg-green-100 text-green-800';
-      case 'expense':
-        return 'bg-red-100 text-red-800';
-      case 'savings':
-        return 'bg-blue-100 text-blue-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'NPR',
-      minimumFractionDigits: 0,
-    })
-      .format(amount)
-      .replace('NPR', 'Rs ');
-  };
-
   const clearFilters = () => {
     setSearchTerm('');
-    setTypeFilter('all');
-    setCategoryFilter('all');
-    setPaymentFilter('all');
+    setTypeFilter(null);
+    setCategoryFilter(null);
+    setPaymentFilter(null);
   };
 
   if (loading) {
@@ -244,45 +125,34 @@ const Transactions: React.FC = () => {
                   />
                 </div>
 
-                <Select value={typeFilter} onValueChange={setTypeFilter}>
-                  <SelectTrigger className="w-1/3 flex-shrink-0">
-                    <SelectValue placeholder="Transaction Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="income">Income</SelectItem>
-                    <SelectItem value="expense">Expense</SelectItem>
-                    <SelectItem value="savings">Savings</SelectItem>
-                  </SelectContent>
-                </Select>
+                <FormCombobox
+                  options={TRANSACTION_TYPE_OPTIONS}
+                  value={typeFilter}
+                  onChange={setTypeFilter}
+                  placeholder="All Types"
+                  clearable
+                  className="w-1/3 flex-shrink-0"
+                />
 
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                  <SelectTrigger className="w-1/3 flex-shrink-0">
-                    <SelectValue placeholder="Category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    {categories.map((category) => (
-                      <SelectItem key={category.id} value={category.id}>
-                        {category.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <FormCombobox
+                  options={categoryOptions}
+                  value={categoryFilter}
+                  onChange={setCategoryFilter}
+                  placeholder="All Categories"
+                  emptyMessage="No categories found."
+                  clearable
+                  className="w-1/3 flex-shrink-0"
+                />
               </div>
               <div className="flex w-2/5 gap-2">
-                <Select value={paymentFilter} onValueChange={setPaymentFilter}>
-                  <SelectTrigger className="w-1/2 flex-shrink-0">
-                    <SelectValue placeholder="Payment Mode" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Payments</SelectItem>
-                    <SelectItem value="cash">Cash</SelectItem>
-                    <SelectItem value="fonepay">Fonepay</SelectItem>
-                    <SelectItem value="esewa">Esewa</SelectItem>
-                    <SelectItem value="credit">Credit</SelectItem>
-                  </SelectContent>
-                </Select>
+                <FormCombobox
+                  options={PAYMENT_MODE_OPTIONS}
+                  value={paymentFilter}
+                  onChange={setPaymentFilter}
+                  placeholder="All Payments"
+                  clearable
+                  className="w-1/2 flex-shrink-0"
+                />
                 <div className="w-1/2 flex-shrink-0">
                   <DateRangePicker
                     onUpdate={(values) =>

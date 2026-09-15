@@ -21,23 +21,21 @@ export interface Organization {
   updatedAt: string;
 }
 
-export interface Transaction {
+export type Transaction = {
   id: string;
-  createdBy: string;
-  date: Date;
-  transactionType: TransactionType;
-  category: string;
-  subCategory: string;
-  note: string;
-  amountTotal: number;
+  userId: string;
+  categoryId: string;
+  subCategoryId: string;
+  amount: number;
   advancePaid: number;
   remainingAmount: number;
+  type: TransactionType;
   modeOfPayment: modeOfPayment;
-  organizationId: string;
-  editHistory: EditHistory[];
+  note: string;
+  date: Date;
   createdAt: Date;
   updatedAt: Date;
-}
+};
 
 export interface EditHistory {
   editedBy: string;
